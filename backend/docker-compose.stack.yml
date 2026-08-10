@@ -1,0 +1,62 @@
+# Fully dockerized app + Postgres stack — used for the QA (develop) and prod
+# (master) pipeline smoke-checks in CI, and usable locally to run the exact
+# same containers those pipelines build. Not used for day-to-day local dev
+# (see docker-compose.yml for that — Postgres only, app runs via `npm run dev`).
+#
+# Usage:
+#   docker compose -f docker-compose.stack.yml --env-file env/stack.env up -d --build
+#
+# Or via the npm scripts (already wired to --env-file env/stack.env):
+#   npm run docker:stack:up / npm run docker:stack:down
+#
+# All config comes from env/stack.env — nothing here is hardcoded. The
+# ${VAR:-default} / ${VAR:?required} fallbacks below only kick in if you run
+# `docker compose` directly without --env-file.
+#
+# Explicit project name: without it, Compose defaults the project name to the
+# directory name ("holdline"), which is exactly what docker-compose.yml (the
+# local-dev Postgres-only file) also defaults to — same project name means
+# same container names, so bringing this stack up would silently stop and
+# replace the dev Postgres container instead of running alongside it.
+name: holdline-stack
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-holdline}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-holdline}
+      POSTGRES_DB: ${POSTGRES_DB:-holdline}
+    volumes:
+      - holdline_stack_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-holdline}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    image: ${APP_IMAGE:-holdline-app:local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-holdline}:${POSTGRES_PASSWORD:-holdline}@postgres:5432/${POSTGRES_DB:-holdline}?schema=public
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET must be set}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET must be set}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_REFRESH_TTL_DAYS: ${JWT_REFRESH_TTL_DAYS:-30}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-simulated}
+    ports:
+      - '${APP_PORT:-3000}:3000'
+
+volumes:
+  holdline_stack_pg_data:

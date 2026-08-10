@@ -1,0 +1,70 @@
+{
+  "name": "holdline",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Holdline - two-sided escrow marketplace backend",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "start": "node dist/src/index.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings=20",
+    "format": "prettier --write .",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:migrate:test-db": "node scripts/run-with-test-db.js npx prisma migrate deploy",
+    "seed": "ts-node prisma/seed.ts",
+    "test:unit": "vitest run src/__tests__/unit",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:e2e-smoke": "vitest run --config vitest.e2e.config.ts",
+    "test": "vitest run",
+    "migration:check": "prisma migrate deploy",
+    "seed:check": "ts-node prisma/seed.ts",
+    "verify": "npm run typecheck && npm run lint && npm run test:unit && npm run prisma:migrate:test-db && npm run test:integration && npm run migration:check && npm run seed:check",
+    "docker:build": "docker build -t holdline-app:local .",
+    "docker:stack:up": "docker compose -f docker-compose.stack.yml --env-file env/stack.env up -d --build",
+    "docker:stack:down": "docker compose -f docker-compose.stack.yml --env-file env/stack.env down -v"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.20.0",
+    "argon2": "^0.41.1",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.0",
+    "express-rate-limit": "^7.4.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "prisma": "^5.20.0",
+    "stripe": "^16.12.0",
+    "uuid": "^10.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.7",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.7.4",
+    "@types/supertest": "^6.0.2",
+    "@types/uuid": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.8.0",
+    "@typescript-eslint/parser": "^8.8.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.3",
+    "supertest": "^7.0.0",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.1"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  }
+}

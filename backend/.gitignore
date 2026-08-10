@@ -1,0 +1,11 @@
+node_modules
+dist
+coverage
+.env
+*.log
+src/generated
+.DS_Store
+
+# real per-environment secrets — never commit these; only the .example
+# templates (env/*.secrets.env.example) are tracked
+env/*.secrets.env

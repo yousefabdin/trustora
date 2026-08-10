@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  buyer
+  seller
+}
+
+enum ListingStatus {
+  active
+  inactive
+}
+
+enum OrderStatus {
+  pending_payment
+  paid_held
+  shipped
+  delivered
+  disputed
+  refunded
+  released
+}
+
+enum OrderEventType {
+  created
+  payment_held
+  shipped
+  receipt_confirmed
+  disputed
+  dispute_resolved_release
+  dispute_resolved_refund
+}
+
+enum PaymentStatus {
+  pending
+  held
+  released
+  refunded
+  failed
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  roles         Role[]
+  isAdmin       Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  listings      Listing[]
+  buyerOrders   Order[]        @relation("BuyerOrders")
+  sellerOrders  Order[]        @relation("SellerOrders")
+  orderEvents   OrderEvent[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id                  String    @id @default(uuid())
+  userId              String
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash           String    @unique
+  expiresAt           DateTime
+  revokedAt           DateTime?
+  replacedByTokenHash String?
+  createdAt           DateTime  @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Listing {
+  id          String        @id @default(uuid())
+  sellerId    String
+  seller      User          @relation(fields: [sellerId], references: [id])
+  title       String
+  description String
+  category    String
+  priceCents  Int
+  status      ListingStatus @default(active)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  orders      Order[]
+
+  @@index([category])
+  @@index([status])
+  @@map("listings")
+}
+
+model Order {
+  id            String      @id @default(uuid())
+  listingId     String
+  listing       Listing     @relation(fields: [listingId], references: [id])
+  buyerId       String
+  buyer         User        @relation("BuyerOrders", fields: [buyerId], references: [id])
+  sellerId      String
+  seller        User        @relation("SellerOrders", fields: [sellerId], references: [id])
+  amountCents   Int
+  status        OrderStatus @default(pending_payment)
+  version       Int         @default(0)
+  trackingInfo  String?
+  disputeReason String?
+  disputeNote   String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  events        OrderEvent[]
+  payment       Payment?
+
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderEvent {
+  id         String          @id @default(uuid())
+  orderId    String
+  order      Order           @relation(fields: [orderId], references: [id])
+  actorId    String?
+  actor      User?           @relation(fields: [actorId], references: [id])
+  actorRole  String
+  type       OrderEventType
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  note       String?
+  createdAt  DateTime        @default(now())
+
+  @@index([orderId])
+  @@map("order_events")
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  orderId     String        @unique
+  order       Order         @relation(fields: [orderId], references: [id])
+  provider    String        @default("simulated")
+  providerRef String?
+  status      PaymentStatus @default(pending)
+  amountCents Int
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("payments")
+}
