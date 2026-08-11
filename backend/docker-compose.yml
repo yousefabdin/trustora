@@ -1,0 +1,25 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: holdline
+      POSTGRES_PASSWORD: holdline
+      POSTGRES_DB: holdline
+    ports:
+      # Host port 5433, not 5432: many dev machines already have a native
+      # Postgres service bound to 5432, and Windows/Docker Desktop can end up
+      # with both listeners on 0.0.0.0:5432 with connections silently landing
+      # on the wrong one. 5433 avoids the collision entirely.
+      - '5433:5432'
+    volumes:
+      - holdline_pg_data:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U holdline']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  holdline_pg_data:

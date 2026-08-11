@@ -1,0 +1,142 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  verify:
+    name: Verify (typecheck, lint, tests, migrations, seed)
+    runs-on: ubuntu-latest
+
+    services:
+      # NOTE: these credentials are literals, not read from env/ci.env, because
+      # GitHub Actions starts `services:` containers before any step (including
+      # checkout) runs — the block cannot read repo files, only
+      # `${{ secrets.* }}` / `${{ vars.* }}` expressions or literals. Keep these
+      # in sync with POSTGRES_USER/PASSWORD/DB in env/ci.env.
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: holdline
+          POSTGRES_PASSWORD: holdline
+          POSTGRES_DB: holdline
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U holdline"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Load CI environment config from env/ci.env
+        run: grep -v '^#' env/ci.env | grep -v '^$' >> "$GITHUB_ENV"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+
+      - name: Create integration test database
+        run: PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -c "CREATE DATABASE $TEST_POSTGRES_DB;"
+
+      - name: Run verify gate (typecheck, lint, unit tests, integration tests, migration check, seed check)
+        run: npm run verify
+
+      - name: Run e2e smoke test
+        run: npm run test:e2e-smoke
+
+  docker:
+    name: Build, smoke-test, and publish Docker image
+    needs: verify
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select environment file for this branch
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/master" ]; then
+            echo "ENV_FILE=env/prod.env" >> "$GITHUB_ENV"
+          else
+            echo "ENV_FILE=env/qa.env" >> "$GITHUB_ENV"
+          fi
+
+      - name: Load environment + stack config from env files
+        run: |
+          REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE=ghcr.io/$REPO_LC" >> "$GITHUB_ENV"
+
+          # Only pull the image-tag names out of env/qa.env or env/prod.env here —
+          # the rest of that file (CORS_ORIGIN, NODE_ENV, etc.) documents the
+          # shape a REAL qa/prod deploy would use later, and would otherwise
+          # collide with env/stack.env's keys below with an order-dependent
+          # winner. The stack that actually runs in this job is the local
+          # smoke-test stack, so env/stack.env is its one source of truth.
+          grep -E '^(ENV_TAG|ALIAS_TAG)=' "$ENV_FILE" >> "$GITHUB_ENV"
+          grep -v '^#' env/stack.env | grep -v '^$' >> "$GITHUB_ENV"
+
+      - name: Build app image
+        run: |
+          docker build -t holdline-app:ci .
+          echo "APP_IMAGE=holdline-app:ci" >> "$GITHUB_ENV"
+
+      - name: Run the full app+Postgres stack from the built image
+        run: docker compose -f docker-compose.stack.yml up -d
+
+      - name: Wait for the app container to report healthy
+        run: |
+          for i in $(seq 1 30); do
+            status=$(docker inspect --format='{{.State.Health.Status}}' holdline-stack-app-1 2>/dev/null || echo "starting")
+            echo "app health: $status"
+            [ "$status" = "healthy" ] && exit 0
+            sleep 2
+          done
+          echo "app never became healthy"
+          docker compose -f docker-compose.stack.yml logs
+          exit 1
+
+      - name: Smoke test the dockerized stack over real HTTP
+        run: |
+          curl -sf http://localhost:$APP_PORT/health
+          curl -sf -X POST http://localhost:$APP_PORT/auth/signup \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"docker-ci-smoke@holdline.dev","password":"password123","roles":["buyer"]}'
+
+      - name: Tear down the stack
+        if: always()
+        run: docker compose -f docker-compose.stack.yml down -v
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag and push image
+        run: |
+          docker tag holdline-app:ci "$IMAGE:${{ github.sha }}"
+          docker tag holdline-app:ci "$IMAGE:$ENV_TAG"
+          docker tag holdline-app:ci "$IMAGE:$ALIAS_TAG"
+          docker push "$IMAGE:${{ github.sha }}"
+          docker push "$IMAGE:$ENV_TAG"
+          docker push "$IMAGE:$ALIAS_TAG"
