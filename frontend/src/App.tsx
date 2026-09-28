@@ -1,10 +1,12 @@
-import Button from "./components/atoms/Button/Button";
-import { Icon } from "@iconify/react";
-import StatusBadge from "./components/molecules/statusBadges/StatusBadges";
 function App() {
+  // const [isOpen, setIsOpen] = useState(false);
+  // const [selectedMajor, setSelectedMajor] = useState("");
   return (
     <>
-      <StatusBadge className="my-3" variant="Pending"></StatusBadge>
+      {/* <HomePage></HomePage> */}
+      {/* <MarketBrowsePage></MarketBrowsePage> */}
+      {/* <ItemDetailsPage></ItemDetailsPage> */}
+      {/* <CheckoutPage></CheckoutPage> */}
     </>
   );
 }

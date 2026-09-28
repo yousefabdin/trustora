@@ -1,1 +1,9 @@
 @import "tailwindcss";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+@import "@fontsource/jetbrains-mono/600.css";
+@import "./theme/theme.css";
+
+@theme {
+  --font-jetbrains: "JetBrains Mono", monospace;
+}
