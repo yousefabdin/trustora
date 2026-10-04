@@ -5,41 +5,58 @@ interface EmptyStateProps {
   placeholder: string;
   description: string;
   buttonLabel: string;
-  buttonLink: string;
+  buttonLink?: string;
+  onAction?: () => void;
   img?: string;
 }
 export default function EmptyState({
   placeholder,
   description,
   buttonLabel,
-  buttonLink,
+  buttonLink = "#",
+  onAction,
   img,
 }: EmptyStateProps) {
   return (
-    <div className="w-full h-screen flex flex-col items-center justify-center gap-[32px]  rounded-xl border-1 border-outline-subtle bg-page-secondary p-[80px]  ">
+    <div className="w-full h-full min-h-[320px] flex flex-col items-center justify-center gap-6 rounded-xl border border-outline-subtle bg-surface-default p-8 sm:p-12 text-center">
       {img && (
-        <div className="flex items-center justify-center w-[120px] h-[120px] border-page-tertiary rounded-[50%] bg-page-tertiary">
-          <img src="/assest/images/noOrderYet.png" alt="" />
+        <div className="flex items-center justify-center w-[100px] h-[100px] rounded-full bg-page-tertiary">
+          <img
+            src={img.startsWith("/") ? img : `/${img}`}
+            alt=""
+            className="w-12 h-12 object-contain"
+          />
         </div>
       )}
-      <div className="flex flex-col items-center justify-center gap-2 w-[480px]">
-        <div className="font-medium text-[20px] text-content-primary">
+      <div className="flex flex-col items-center justify-center gap-2 w-full max-w-[480px]">
+        <div className="font-semibold text-[18px] md:text-[20px] text-content-primary">
           {placeholder}
         </div>
-        <span className="font-normal text-content-secondary text-[14px] text-center">
+        <p className="font-normal text-content-secondary text-[13px] md:text-[14px] text-center leading-relaxed">
           {description}
-        </span>
-        <span className="p-[10px]">
-          <Link to={buttonLink}>
+        </p>
+        <div className="pt-2">
+          {onAction ? (
             <Button
               variant="primary"
-              className="py-2 rounded-[6px]! px-[20px] py-[12px] "
+              onClick={onAction}
+              className="py-2.5 px-5 rounded-[6px]! inline-flex items-center text-sm font-medium"
             >
-              <Icon icon="akar-icons:arrow-cycle" className="mr-2"></Icon>
+              <Icon icon="akar-icons:arrow-cycle" className="mr-2 w-4 h-4" />
               {buttonLabel}
             </Button>
-          </Link>
-        </span>
+          ) : (
+            <Link to={buttonLink}>
+              <Button
+                variant="primary"
+                className="py-2.5 px-5 rounded-[6px]! inline-flex items-center text-sm font-medium"
+              >
+                <Icon icon="akar-icons:arrow-cycle" className="mr-2 w-4 h-4" />
+                {buttonLabel}
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );

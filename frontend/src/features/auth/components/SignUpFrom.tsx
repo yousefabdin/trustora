@@ -14,17 +14,22 @@ export default function SignUpForm() {
   const [name, setName] = useState("");
 
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    try {
-      const user = await register({
-        password,
-        email,
-        name,
+    if (password !== confirmPassword) {
+      showToast({
+        variant: "error",
+        message: "Passwords do not match",
       });
+      return;
+    }
+    try {
+      const user = await register({ name, email, password });
+
       console.log(user);
       if (user.role === "user") navigate("/browse");
       if (user.role === "seller") navigate("/seller/dashboard");
@@ -197,10 +202,13 @@ export default function SignUpForm() {
                     required={true}
                     confirmation={true}
                     password={password}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                   ></TextField>
                 </div>
               </div>
               <Button
+                type="submit"
                 variant="primary"
                 children={"Create Account"}
                 className="rounded-[6px]! text-[14px] font-[600] text-page-primary px-[16px] py-[12px]"

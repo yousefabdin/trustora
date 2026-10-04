@@ -1,22 +1,72 @@
 import Typography from "@/components/atoms/typography/typography";
 import StatusBadge from "@/components/molecules/statusBadges/StatusBadges";
 import StepperBar from "@/components/molecules/stepper/StepperBar";
-import { Icon } from "@iconify/react";
 import OrderConfirmationCard from "./OrderConfirmationCard";
-export default function OrderHeaderSection({ order }) {
+import { useAuth } from "@/context/AuthContext";
+interface OrderHeaderSectionProps {
+  order: any;
+  orderId?: string;
+  mode?: string;
+  setMode?: (mode: string) => void;
+  handleOpenDisputed?: (
+    reason: string,
+    description: string,
+    evidenceFiles?: string[]
+  ) => void | Promise<void>;
+  handleConfirmReceipt?: () => void | Promise<void>;
+}
+
+export default function OrderHeaderSection({
+  order,
+  orderId,
+  mode,
+  setMode,
+  handleOpenDisputed,
+  handleConfirmReceipt,
+}: OrderHeaderSectionProps) {
   const statusToStep = {
     Captured: 1,
     "In Escrow": 2,
     Shipped: 3,
     Deliverd: 4,
-    Completed: 6,
+    Completed: 5,
   } as const;
+  const { user } = useAuth();
+  const currentStep = statusToStep[order?.status as keyof typeof statusToStep] || 2;
 
-  const currentStep = statusToStep[order?.status as keyof typeof statusToStep];
+  const isBuyer = Boolean(
+    order?.isBuyer ??
+      order?.permissions?.isBuyer ??
+      (user &&
+        (user.id === order?.buyerId ||
+          (order?.buyerEmail &&
+            user.email?.toLowerCase() === order.buyerEmail.toLowerCase())))
+  );
+
+  const isSeller = Boolean(
+    !isBuyer &&
+      (order?.isSeller ??
+        order?.permissions?.isSeller ??
+        (user &&
+          (user.id === order?.sellerId ||
+            (order?.sellerEmail &&
+              user.email?.toLowerCase() === order.sellerEmail.toLowerCase()))))
+  );
+
+  const roleForOrder: "buyer" | "seller" = isSeller ? "seller" : "buyer";
+
   return (
     <div className=" w-full flex flex-col gap-[24px]">
       <div className="block md:hidden">
-        <OrderConfirmationCard roles={"buyer"}></OrderConfirmationCard>
+        <OrderConfirmationCard
+          roles={roleForOrder}
+          order={order}
+          orderId={orderId || order?.id}
+          mode={mode}
+          setMode={setMode}
+          handleOpenDisputed={handleOpenDisputed}
+          onConfirmReceipt={handleConfirmReceipt}
+        />
       </div>
       <div className="hidden md:flex justify-between items-center">
         <div className="flex flex-col gap-[12px]">
@@ -39,19 +89,19 @@ export default function OrderHeaderSection({ order }) {
         </div>
         <div>
           <StatusBadge
-            icon={"hugeicons:shipping-truck-02"}
-            children={order.status}
+            children={order?.status}
             variant={order?.status}
             className=""
           ></StatusBadge>
         </div>
       </div>
-      <div className="bg-white px-[12px] py-[16px] border border-page-tertiary rounded-[12px] ">
+      <div className="bg-white p-4 md:px-[24px] md:py-[20px] border border-page-tertiary rounded-[16px]">
         <StepperBar
-          isDisputed={false}
+          order={order}
+          isDisputed={order?.status === "Disputed" || order?.rawStatus === "disputed"}
           currentStep={currentStep}
           statusDate={order?.statusHistory}
-        ></StepperBar>
+        />
       </div>
     </div>
   );

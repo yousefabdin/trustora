@@ -2,14 +2,20 @@ import React from "react";
 import Typography from "@/components/atoms/typography/typography";
 import { Icon } from "@iconify/react";
 import type { UserProfileData } from "./EditProfileModal";
+import type { AccountField } from "../profileData";
 
 interface AccountInfoCardProps {
   profile: UserProfileData;
   onEdit: () => void;
+  customFields?: AccountField[];
 }
 
-export default function AccountInfoCard({ profile, onEdit }: AccountInfoCardProps) {
-  const fields = [
+export default function AccountInfoCard({
+  profile,
+  onEdit,
+  customFields,
+}: AccountInfoCardProps) {
+  const fields: AccountField[] = customFields || [
     {
       label: "Full Name",
       value: profile.name,

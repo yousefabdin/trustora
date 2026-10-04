@@ -25,6 +25,7 @@ export default function OrdersSection() {
 
       <OrdersTable
         setSearch={setSearch}
+        setActiveFilter={setActiveFilter}
         search={search}
         activeFilter={activeFilter}
       />

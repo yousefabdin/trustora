@@ -7,36 +7,38 @@ interface ItemGalleryProps {
 }
 export default function ProductGallery({ item }: ItemGalleryProps) {
   const [selected, setSelected] = useState(item.images[0]);
-  const handleClickImage = (imgUrl) => {
+  const handleClickImage = (imgUrl: string) => {
     setSelected(imgUrl);
-    console.log(imgUrl);
   };
   return (
-    <div className="flex items-start flex-col gap-[12px]">
-      <div className="">
+    <div className="w-full flex items-start flex-col gap-[16px]">
+      <div className="w-full aspect-[4/3] rounded-lg overflow-hidden border border-outline-subtle bg-page-secondary">
         <img
           src={selected}
           alt={item.itemName}
-          className="min-w-[656px] h-[492px] rounded-lg object-cover"
+          className="w-full h-full object-cover object-center"
         />
       </div>
 
-      <div className="w-full flex items-start justify-between gap-2">
-        {item.images.map((imgUrl, index) => (
-          <Button
-            variant="ghost"
-            className="h-[116px] p-0! cursor-pointer hover:bg-none"
+      <div className="w-full grid grid-cols-4 gap-3">
+        {item.images.slice(0, 4).map((imgUrl, index) => (
+          <button
+            key={index}
+            type="button"
+            className={clsx(
+              "w-full aspect-[4/3] p-0 rounded-lg overflow-hidden border-2 transition-all cursor-pointer bg-page-secondary",
+              imgUrl === selected
+                ? "border-accent-default shadow-xs"
+                : "border-outline-subtle opacity-75 hover:opacity-100 hover:border-outline-strong",
+            )}
             onClick={() => handleClickImage(imgUrl)}
           >
             <img
-              key={index}
               src={imgUrl}
-              className={clsx(
-                "h-[116px] w-full rounded-[6px] object-cover border border-page-tertiary hover:border-accent-default",
-                { "border-2 border-accent-default! ": imgUrl === selected },
-              )}
+              alt=""
+              className="w-full h-full object-cover object-center"
             />
-          </Button>
+          </button>
         ))}
       </div>
     </div>

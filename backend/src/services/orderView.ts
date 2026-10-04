@@ -37,6 +37,9 @@ export interface OrderResponse {
   sellerName: string;
   amountCents: number;
   status: string;
+  trackingInfo?: string | null;
+  disputeReason?: string | null;
+  disputeNote?: string | null;
   permissions: ReturnType<typeof computeOrderPermissions>;
   events: OrderEventResponse[];
   createdAt: string;
@@ -55,6 +58,9 @@ export function toOrderResponse(
     sellerName: order.seller.email,
     amountCents: order.amountCents,
     status: order.status,
+    trackingInfo: order.trackingInfo,
+    disputeReason: order.disputeReason,
+    disputeNote: order.disputeNote,
     permissions: computeOrderPermissions(
       { status: order.status as OrderStatus, buyerId: order.buyerId, sellerId: order.sellerId },
       requester,

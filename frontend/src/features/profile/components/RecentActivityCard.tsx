@@ -1,22 +1,19 @@
 import React from "react";
 import Typography from "@/components/atoms/typography/typography";
 import { Icon } from "@iconify/react";
-import { orderData } from "@/utils/orderSeed";
 import { formatActivityDate } from "@/utils/dateUtils";
+import type { ProfileActivityItem } from "../profileData";
 
-interface ActivityItem {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-  orderNumber?: string;
-  itemName?: string;
-  type: "escrow" | "shipping" | "delivery" | "release" | "dispute";
+interface RecentActivityCardProps {
+  activities?: ProfileActivityItem[];
+  subtitle?: string;
 }
 
-export default function RecentActivityCard() {
-  // Aggregate real events from order status histories
-  const activities: ActivityItem[] = [
+export default function RecentActivityCard({
+  activities: customActivities,
+  subtitle = "Marketplace Log",
+}: RecentActivityCardProps) {
+  const activities: ProfileActivityItem[] = customActivities || [
     {
       id: "act-1",
       title: "Package Delivered & Inspection Started",
@@ -100,20 +97,22 @@ export default function RecentActivityCard() {
   };
 
   return (
-    <div className="w-full bg-surface-default border border-outline-subtle rounded-xl p-5 sm:p-6 shadow-xs flex flex-col gap-4">
-      <div className="flex items-center justify-between pb-3 border-b border-outline-subtle">
+    <div className="w-full bg-surface-default border border-outline-subtle rounded-xl p-4 sm:p-6 shadow-xs flex flex-col gap-4">
+      <div className="flex items-center justify-between pb-3 border-b border-outline-subtle flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <Icon icon="lucide:history" className="w-4.5 h-4.5 text-accent-default" />
+          <div className="p-1.5 rounded-md bg-accent-surface text-accent-default">
+            <Icon icon="lucide:history" className="w-4 h-4" />
+          </div>
           <Typography
             variant="h3"
-            className="text-[16px] font-bold text-content-primary leading-tight"
+            className="text-[15px] sm:text-[16px] font-bold text-content-primary leading-tight"
           >
             Recent Activity
           </Typography>
         </div>
 
-        <span className="text-[12px] font-medium text-content-tertiary">
-          Marketplace Log
+        <span className="text-[11px] sm:text-[12px] font-medium text-content-tertiary">
+          {subtitle}
         </span>
       </div>
 

@@ -15,6 +15,11 @@ export default function OrderPagination({
   total,
   limit,
 }: ItemPaginationProps) {
+  const pages = [];
+
+  for (let i = 1; i <= totalPages; i++) {
+    pages.push(i);
+  }
   const start = total === 0 ? 0 : (page - 1) * limit + 1;
   const end = Math.min(page * limit, total);
 

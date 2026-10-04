@@ -2,63 +2,80 @@ import CardSummarySection from "./CardSummarySection";
 import CheckoutForm from "./CheckoutForm";
 import { useLocation, useNavigate } from "react-router-dom";
 import PaySectionMobile from "./PaySectionMobile";
-import { useState, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createOrder } from "@/services/orderService";
-import { getTodayDate } from "@/services/orderService";
+import { marketplaceListings } from "@/utils/ItemsSeed";
+import { useAuth } from "@/context/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { showToast } from "@/components/molecules/toast/Toast";
+import { getApiErrorMessage } from "@/apis/axios";
+
 export default function CheckoutSection() {
   const { state } = useLocation();
-  const item = state.item;
+  const item = state?.item || marketplaceListings[0];
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const createOrderNumber = useRef(2756);
   const navigate = useNavigate();
-  const handleOrderPayment = async (e) => {
-    e.preventDefault();
-    const totalPrice = 12.45 + item.itemPrice;
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
 
-    const orderDate = getTodayDate();
-    createOrderNumber.current = createOrderNumber.current + 1;
-    const shippingFees = item.itemPrice > 500 ? 0 : 30;
-    const orderNumber = "#HDL-".concat(createOrderNumber.current.toString());
+  useEffect(() => {
+    if (
+      user &&
+      item &&
+      (user.id === item.sellerId ||
+        (item.sellerEmail &&
+          user.email?.toLowerCase() === item.sellerEmail?.toLowerCase()) ||
+        (item.sellerName &&
+          user.email?.split("@")[0].toLowerCase() ===
+            item.sellerName.replace(/^@/, "").toLowerCase()))
+    ) {
+      showToast({
+        variant: "error",
+        message: "You cannot purchase your own listing.",
+      });
+      navigate("/browse", { replace: true });
+    }
+  }, [user, item, navigate]);
+
+  const handleOrderPayment = async (e?: React.FormEvent) => {
+    e?.preventDefault?.();
     setIsSubmitting(true);
-    const newOrder = {
-      id: crypto.randomUUID(),
-      orderNumber: orderNumber,
-      itemName: item.itemName,
-      itemPrice: item.itemPrice,
-      totalPrice: totalPrice,
-      orderDate: orderDate,
-      status: "Captured",
-      shippingFees: shippingFees,
-      platformFee: 15,
-      trackingNumber: "9400111899223847652" + createOrderNumber,
-      statusHistory: [
-        { status: "Captured", date: getTodayDate() },
-        { status: "Held in Escrow", date: getTodayDate() },
-      ],
-      escrowInstructionSummary:
-        "Funds held securely in escrow until buyer confirms inspection within 48 hours of delivery.",
-      itemImg: item.img,
-      sellerName: item.sellerName,
-      sellerAvatar: item.sellerAvatar,
-    };
     try {
-      createOrder(newOrder);
+      const newOrder = await createOrder(String(item.id));
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
       navigate(`/checkout/success/${newOrder.id}`);
+    } catch (err) {
+      showToast({
+        variant: "error",
+        message: getApiErrorMessage(err),
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <>
-      <div className="flex justify-center flex-col-reverse md:flex-row md:justify-between py-[20px] px-[12px] md:pt-[48px] md:px-[20px] lg:pb-[80px] lg:px-[64px] lg:gap-[64px] gap-[10px]">
-        <CheckoutForm
-          item={item}
-          handleOrderPayment={handleOrderPayment}
-        ></CheckoutForm>
-        <CardSummarySection item={item}></CardSummarySection>
+    <div className="w-full bg-page-primary">
+      <div className="block md:hidden w-full">
+        <CardSummarySection item={item} mobileOnly />
       </div>
-      <PaySectionMobile item={item}></PaySectionMobile>
-    </>
+
+      <div className="w-full flex flex-col md:flex-row items-start py-5 px-4 md:px-6 lg:px-[64px] md:pt-[40px] lg:pb-[80px] gap-6 lg:gap-[64px]">
+        <div className="w-full md:flex-[2] min-w-0">
+          <CheckoutForm
+            item={item}
+            handleOrderPayment={handleOrderPayment}
+            isSubmitting={isSubmitting}
+          />
+        </div>
+
+        <div className="hidden md:block w-full md:flex-[1] md:min-w-[320px] lg:min-w-[360px] max-w-[480px]">
+          <CardSummarySection item={item} desktopOnly />
+        </div>
+      </div>
+
+      <PaySectionMobile item={item} isSubmitting={isSubmitting} />
+    </div>
   );
 }

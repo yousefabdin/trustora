@@ -11,7 +11,10 @@ type TypographyVariant =
   | "caption"
   | "label"
   | "currencyLarge"
-  | "currencySmall";
+  | "currencySmall"
+  | "p"
+  | "span"
+  | "div";
 
 interface TypographyProps extends React.HTMLAttributes<HTMLElement> {
   variant: TypographyVariant;
@@ -21,7 +24,7 @@ interface TypographyProps extends React.HTMLAttributes<HTMLElement> {
   onClick?: () => void;
 }
 
-const typographyStyles: Record<TypographyVariant, string> = {
+const typographyStyles: Record<string, string> = {
   display: "font-inter text-[56px] leading-[56px] font-extraBold",
 
   h1: "font-inter text-[36px] leading-[40px] font-extraBold",
@@ -43,9 +46,15 @@ const typographyStyles: Record<TypographyVariant, string> = {
   currencyLarge: "font-jetbrains text-[28px] leading-[36px] font-medium",
 
   currencySmall: "font-jetbrains text-[14px] leading-[20px] font-normal",
+
+  p: "font-inter text-[14px] leading-[20px] font-normal",
+
+  span: "font-inter text-[14px] leading-[20px] font-normal",
+
+  div: "font-inter text-[14px] leading-[20px] font-normal",
 };
 
-const defaultElements: Record<TypographyVariant, React.ElementType> = {
+const defaultElements: Record<string, React.ElementType> = {
   display: "h1",
   h1: "h1",
   h2: "h2",
@@ -57,20 +66,28 @@ const defaultElements: Record<TypographyVariant, React.ElementType> = {
   label: "span",
   currencyLarge: "span",
   currencySmall: "span",
+  p: "p",
+  span: "span",
+  div: "div",
 };
 
 export default function Typography({
-  variant,
+  variant = "body",
   children,
   className,
   as,
   ...props
 }: TypographyProps) {
-  const Component = as ?? defaultElements[variant];
+  const Component =
+    as ??
+    defaultElements[variant] ??
+    (typeof variant === "string" && ["p", "span", "div", "h1", "h2", "h3", "h4", "h5", "h6"].includes(variant)
+      ? variant
+      : "p");
 
   return (
     <Component
-      className={clsx(typographyStyles[variant], className)}
+      className={clsx(typographyStyles[variant] || typographyStyles.body, className)}
       {...props}
     >
       {children}

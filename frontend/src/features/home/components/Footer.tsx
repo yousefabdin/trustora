@@ -130,9 +130,9 @@ export default function footer() {
           variant="caption"
           className="text-[14px] text-content-tertiary"
         >
-          ©2026 Holdline Inc. All rights reserved.
+          ©2026 Trustora Inc. All rights reserved.
         </Typography>
-        <div className="flex gap-6">
+        <div className="mb-3 flex gap-6">
           <Icon
             icon="akar-icons:linkedin-fill"
             className=" text-content-tertiary"

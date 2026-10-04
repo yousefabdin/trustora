@@ -50,6 +50,11 @@ ordersRouter.post(
         },
       });
 
+      await tx.listing.update({
+        where: { id: listing.id },
+        data: { status: 'sold' },
+      });
+
       await tx.orderEvent.create({
         data: {
           orderId: created.id,
@@ -104,8 +109,81 @@ ordersRouter.get(
   requireAuth,
   validateQuery(orderQuerySchema),
   asyncHandler(async (req, res) => {
-    const { role } = req.query as unknown as { role: 'buyer' | 'seller' };
-    const where = role === 'buyer' ? { buyerId: req.user!.id } : { sellerId: req.user!.id };
+    const { role, search, status, page, limit } = req.query as unknown as {
+      role: 'buyer' | 'seller';
+      search?: string;
+      status?: string;
+      page?: number;
+      limit?: number;
+    };
+
+    const andConditions: any[] = [
+      role === 'buyer' ? { buyerId: req.user!.id } : { sellerId: req.user!.id },
+    ];
+
+    if (status && status.trim() !== '' && status.toLowerCase() !== 'all') {
+      const s = status.trim().toLowerCase();
+      if (s === 'in escrow' || s === 'in_escrow' || s === 'paid_held') {
+        andConditions.push({ status: { in: ['paid_held', 'pending_payment'] } });
+      } else if (s === 'shipped') {
+        andConditions.push({ status: { in: ['shipped', 'delivered'] } });
+      } else if (s === 'completed' || s === 'released') {
+        andConditions.push({ status: 'released' });
+      } else if (s === 'disputed') {
+        andConditions.push({ status: 'disputed' });
+      } else if (s === 'refunded') {
+        andConditions.push({ status: 'refunded' });
+      } else {
+        andConditions.push({ status: s });
+      }
+    }
+
+    if (search && search.trim() !== '') {
+      const rawSearch = search.trim();
+      const cleanTerm = rawSearch.replace(/^#/, '').replace(/^hld-/i, '').trim();
+      const orConditions: any[] = [
+        { listing: { title: { contains: rawSearch, mode: 'insensitive' } } },
+        { listing: { description: { contains: rawSearch, mode: 'insensitive' } } },
+        { seller: { email: { contains: rawSearch, mode: 'insensitive' } } },
+        { buyer: { email: { contains: rawSearch, mode: 'insensitive' } } },
+        { trackingInfo: { contains: rawSearch, mode: 'insensitive' } },
+      ];
+      if (cleanTerm) {
+        orConditions.push({ id: { contains: cleanTerm, mode: 'insensitive' } });
+      }
+      andConditions.push({ OR: orConditions });
+    }
+
+    const where = { AND: andConditions };
+
+    if (page !== undefined || limit !== undefined) {
+      const pageNum = Math.max(1, page || 1);
+      const pageSize = Math.max(1, limit || 6);
+      const skip = (pageNum - 1) * pageSize;
+
+      const [total, orders] = await Promise.all([
+        prisma.order.count({ where }),
+        prisma.order.findMany({
+          where,
+          include: ORDER_FULL_INCLUDE,
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: pageSize,
+        }),
+      ]);
+
+      const mapped = orders.map((o) => toOrderResponse(o, { id: req.user!.id, isAdmin: req.user!.isAdmin }));
+      const totalPages = Math.ceil(total / pageSize) || 1;
+
+      res.status(200).json({
+        data: mapped,
+        total,
+        totalPages,
+        page: pageNum,
+        limit: pageSize,
+      });
+      return;
+    }
 
     const orders = await prisma.order.findMany({
       where,
@@ -199,7 +277,16 @@ ordersRouter.post(
   requireOrderTransition(() => 'disputed'),
   asyncHandler(async (req, res) => {
     const order = req.order!;
-    const { reason, description } = req.body as { reason: string; description: string };
+    const { reason, description, evidenceFiles } = req.body as {
+      reason: string;
+      description: string;
+      evidenceFiles?: string[];
+    };
+
+    const formattedNote =
+      evidenceFiles && evidenceFiles.length > 0
+        ? `${description}\n\n[Evidence Attached: ${evidenceFiles.join(', ')}]`
+        : description;
 
     await prisma.$transaction((tx) =>
       applyOrderTransition(tx, {
@@ -210,8 +297,8 @@ ordersRouter.post(
         actorId: req.user!.id,
         actorRole: 'buyer',
         eventType: 'disputed',
-        note: description,
-        extraData: { disputeReason: reason, disputeNote: description },
+        note: formattedNote,
+        extraData: { disputeReason: reason, disputeNote: formattedNote },
       }),
     );
 

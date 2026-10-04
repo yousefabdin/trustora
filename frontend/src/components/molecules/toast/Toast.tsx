@@ -5,6 +5,7 @@ import { Icon } from "@iconify/react";
 export type ToastVariant = "success" | "error" | "info" | "escrow";
 
 interface ToastProps {
+  id?: string;
   className?: string;
   variant: ToastVariant;
   message: string;
@@ -38,36 +39,40 @@ const toastConfig = {
   },
 };
 
-export const showToast = ({ variant, message, className }: ToastProps) => {
+export const showToast = ({ id, variant, message, className }: ToastProps) => {
   const config = toastConfig[variant];
+  const toastId = id || message;
 
-  toast.custom((id) => (
-    <div className="w-[calc(100vw-32px)] md:w-100">
-      <div
-        className={clsx(
-          "flex items-center justify-between rounded-lg border py-2 gap-4 shadow-lg px-3",
-          config.backgroundColor,
-          className,
-        )}
-      >
-        <div className="flex items-center gap-3">
-          <Icon
-            icon={config.icon}
-            className={clsx("h-5 w-5", config.iconColor)}
-          />
+  toast.custom(
+    (customId) => (
+      <div className="w-[calc(100vw-32px)] md:w-100">
+        <div
+          className={clsx(
+            "flex items-center justify-between rounded-lg border py-2 gap-4 shadow-lg px-3",
+            config.backgroundColor,
+            className,
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <Icon
+              icon={config.icon}
+              className={clsx("h-5 w-5", config.iconColor)}
+            />
 
-          <span className={clsx("text-sm font-medium", config.text)}>
-            {message}
-          </span>
+            <span className={clsx("text-sm font-medium", config.text)}>
+              {message}
+            </span>
+          </div>
+
+          <button onClick={() => toast.dismiss(customId)}>
+            <Icon
+              icon="solar:close-circle-bold"
+              className={clsx("h-5 w-5", config.iconColor)}
+            />
+          </button>
         </div>
-
-        <button onClick={() => toast.dismiss(id)}>
-          <Icon
-            icon="solar:close-circle-bold"
-            className={clsx("h-5 w-5", config.iconColor)}
-          />
-        </button>
       </div>
-    </div>
-  ));
+    ),
+    { id: toastId },
+  );
 };

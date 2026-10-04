@@ -8,6 +8,7 @@ import {
 } from "@/utils/dropDownData";
 
 interface FilterSectionProps {
+  search?: string;
   setSearch?: (search: string) => void;
   className?: string;
   category?: string;
@@ -19,6 +20,7 @@ interface FilterSectionProps {
 }
 
 export default function FilterSection({
+  search,
   setSearch,
   className,
   category,
@@ -31,12 +33,13 @@ export default function FilterSection({
   return (
     <div
       className={clsx(
-        "w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-4 p-4 md:py-4 md:px-5 lg:px-10 border-b border-page-tertiary",
+        "w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-[12px] p-[16px] md:px-[40px] md:py-[16px] border-b border-page-tertiary",
         className,
       )}
     >
       <div className="w-full md:w-auto">
         <SearchInput
+          value={search}
           setSearch={setSearch}
           className="w-full bg-[#F5F5F4]"
         />

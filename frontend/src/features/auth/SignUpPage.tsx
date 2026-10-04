@@ -5,7 +5,7 @@ export default function SignUpPage() {
   return (
     <div className="flex  h-screen ">
       <BrandPanelSection></BrandPanelSection>
-      <SignUpForm></SignUpForm>
+      <SignUpForm />
     </div>
   );
 }

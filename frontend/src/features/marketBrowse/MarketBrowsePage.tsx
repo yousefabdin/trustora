@@ -4,7 +4,7 @@ import MarketplaceBrowse from "./components/MarketplaceBrowse";
 export default function MarketBrowsePage() {
   return (
     <div>
-      <NavBar buttonLabel="+ Sell" isAuth={true} />
+      <NavBar isAuth={true} />
       <MarketplaceBrowse />
     </div>
   );

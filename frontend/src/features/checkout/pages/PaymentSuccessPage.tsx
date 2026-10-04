@@ -1,12 +1,13 @@
 import NavBar from "@/components/organisms/NavigationsBar/NavBar";
 import OrderPaid from "../components/OrderPaid";
-import { useLocation } from "react-router";
 
-export default function PaymentsuccessPage() {
+export default function PaymentSuccessPage() {
   return (
-    <div>
-      <NavBar buttonLabel={"+Sell"} isAuth={true}></NavBar>
-      <OrderPaid></OrderPaid>
+    <div className="min-h-screen bg-page-primary flex flex-col">
+      <NavBar buttonLabel="+Sell" isAuth={true} />
+      <main className="flex-1 w-full">
+        <OrderPaid />
+      </main>
     </div>
   );
 }

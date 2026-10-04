@@ -16,10 +16,10 @@ authRouter.post(
   '/signup',
   validateBody(signupSchema),
   asyncHandler(async (req, res) => {
-    const { email, password, roles } = req.body as {
+    const { email, password } = req.body as {
       email: string;
       password: string;
-      roles: ('buyer' | 'seller')[];
+      roles?: ('buyer' | 'seller')[];
     };
 
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -28,10 +28,9 @@ authRouter.post(
     }
 
     const passwordHash = await argon2.hash(password);
-    // isAdmin is never accepted from the request body — it has no field in
-    // signupSchema at all, so there is no path from client input to admin.
+    // Every registered user has both buyer and seller capabilities by default
     const user = await prisma.user.create({
-      data: { email, passwordHash, roles, isAdmin: false },
+      data: { email, passwordHash, roles: ['buyer', 'seller'], isAdmin: false },
     });
 
     const tokens = await issueTokenPair(user.id);

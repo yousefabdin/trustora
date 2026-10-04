@@ -1,33 +1,41 @@
 import Button from "@/components/atoms/Button/Button";
 import Typography from "@/components/atoms/typography/typography";
 import { Icon } from "@iconify/react";
-import type { ListingType } from "@/utils/sellerListingSeed";
+import type { MarketplaceListing } from "@/services/itemsServices";
+import clsx from "clsx";
 
-interface LisitingHeaderProps {
+interface ListingHeaderProps {
   setModal: (value: boolean) => void;
-  sellerItems: ListingType[];
+  sellerItems: MarketplaceListing[];
   modal: boolean;
   user?: any;
+  activeTab?: "all" | "active" | "sold" | "draft";
+  onTabChange?: (tab: "all" | "active" | "sold" | "draft") => void;
 }
+
 export default function ListingHeader({
   sellerItems = [],
   setModal,
   modal,
-  user,
-}: LisitingHeaderProps) {
+  activeTab = "all",
+  onTabChange,
+}: ListingHeaderProps) {
   const handleCreateListing = () => {
     setModal(!modal);
   };
 
-  const activeCount = sellerItems.filter((item) => {
-    return item.status === "Active";
-  }).length;
-  const soldCount = sellerItems.filter((item) => {
-    return item.status === "Sold";
-  }).length;
-  const draftCount = sellerItems.filter((item) => {
-    return item.status === "Draft";
-  }).length;
+  const activeCount = sellerItems.filter(
+    (item) => (item.status || "active").toLowerCase() === "active",
+  ).length;
+
+  const soldCount = sellerItems.filter(
+    (item) => (item.status || "").toLowerCase() === "sold",
+  ).length;
+
+  const draftCount = sellerItems.filter(
+    (item) => (item.status || "").toLowerCase() === "draft",
+  ).length;
+
   return (
     <div className="flex flex-col w-full">
       <div className="flex w-full justify-between items-center pt-2 md:pt-[48px]">
@@ -38,17 +46,62 @@ export default function ListingHeader({
             className="text-[26px] md:text-[28px] font-[800]! text-gray-900"
           ></Typography>
           <div className="flex items-center gap-[6px] text-xs">
-            <span className="font-jetbrains font-bold text-[#059669]">
+            <button
+              type="button"
+              onClick={() =>
+                onTabChange?.(activeTab === "active" ? "all" : "active")
+              }
+              className={clsx(
+                "font-jetbrains font-bold px-2 py-0.5 rounded transition-all cursor-pointer",
+                activeTab === "active"
+                  ? "bg-emerald-100 text-[#059669] ring-1 ring-emerald-400"
+                  : "text-[#059669] hover:bg-emerald-50",
+              )}
+            >
               {activeCount} Active
-            </span>
+            </button>
             <span className="text-gray-400">·</span>
-            <span className="font-jetbrains font-bold text-gray-500">
+            <button
+              type="button"
+              onClick={() =>
+                onTabChange?.(activeTab === "sold" ? "all" : "sold")
+              }
+              className={clsx(
+                "font-jetbrains font-bold px-2 py-0.5 rounded transition-all cursor-pointer",
+                activeTab === "sold"
+                  ? "bg-gray-200 text-gray-800 ring-1 ring-gray-400"
+                  : "text-gray-500 hover:bg-gray-100",
+              )}
+            >
               {soldCount} Sold
-            </span>
+            </button>
             <span className="text-gray-400">·</span>
-            <span className="font-jetbrains font-bold text-amber-500">
+            <button
+              type="button"
+              onClick={() =>
+                onTabChange?.(activeTab === "draft" ? "all" : "draft")
+              }
+              className={clsx(
+                "font-jetbrains font-bold px-2 py-0.5 rounded transition-all cursor-pointer",
+                activeTab === "draft"
+                  ? "bg-amber-100 text-amber-700 ring-1 ring-amber-400"
+                  : "text-amber-500 hover:bg-amber-50",
+              )}
+            >
               {draftCount} Draft
-            </span>
+            </button>
+            {activeTab !== "all" && (
+              <>
+                <span className="text-gray-400">·</span>
+                <button
+                  type="button"
+                  onClick={() => onTabChange?.("all")}
+                  className="font-jetbrains text-xs text-indigo-600 hover:underline cursor-pointer font-semibold ml-1"
+                >
+                  Show All ({sellerItems.length})
+                </button>
+              </>
+            )}
           </div>
         </div>
         <div className="hidden md:block">

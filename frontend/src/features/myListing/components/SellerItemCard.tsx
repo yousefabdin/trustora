@@ -1,11 +1,10 @@
 import { Icon } from "@iconify/react";
-import React from "react";
 import clsx from "clsx";
 interface ListingCardProps {
   id?: string;
   title: string;
   image: string;
-  price: string;
+  price: string | number;
   views: number;
   offersCount?: number;
   lastActive?: string;
@@ -87,12 +86,15 @@ export default function SellerListingCard({
           <div className="flex items-center gap-2 ">
             <span
               className={clsx(
-                "px-3 py-1 text-[11px] font-jetbrains uppercase font-bold text-emerald-600 bg-emerald-50 rounded-md tracking-wider",
-                status === "Draft" && "bg-escrow-surface! text-escrow-icon",
-                status === "Sold" && "bg-[#F5F5F4]! text-content-secondary!",
+                "px-3 py-1 text-[11px] font-jetbrains uppercase font-bold rounded-md tracking-wider border",
+                statusUpper === "SOLD"
+                  ? "bg-neutral-100 text-neutral-600 border-neutral-200"
+                  : statusUpper === "DRAFT"
+                  ? "bg-amber-50 text-amber-700 border-amber-200"
+                  : "bg-emerald-50 text-emerald-600 border-emerald-100",
               )}
             >
-              {status}
+              {statusUpper}
             </span>
 
             <button

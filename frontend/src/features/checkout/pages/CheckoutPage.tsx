@@ -1,11 +1,11 @@
-import NavBar from "@/components/organisms/NavigationsBar/NavBar";
+import CheckoutHeader from "../components/CheckoutHeader";
 import CheckoutSection from "../components/CheckoutSection";
 
 export default function CheckoutPage() {
   return (
-    <div>
-      <NavBar buttonLabel="Get Started" isAuth={false}></NavBar>
-      <CheckoutSection></CheckoutSection>
+    <div className="min-h-screen bg-page-primary">
+      <CheckoutHeader />
+      <CheckoutSection />
     </div>
   );
 }

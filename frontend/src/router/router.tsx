@@ -22,7 +22,6 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute />,
     children: [
       {
-        element: <RoleRoute allowedRoles={["user", "seller", "admin"]} />,
         children: [
           {
             path: "/profile",
@@ -31,14 +30,22 @@ export const router = createBrowserRouter([
         ],
       },
       {
-        element: <RoleRoute allowedRoles={["user", "seller"]} />,
+        element: <RoleRoute allowedRoles={["user", "admin", "seller"]} />,
         children: [
           {
             path: "/myorders",
             element: <MyOrderPage />,
           },
           {
+            path: "/orders",
+            element: <MyOrderPage />,
+          },
+          {
             path: "/myorder/:orderId",
+            element: <OrderDetailsPage />,
+          },
+          {
+            path: "/orders/:orderId",
             element: <OrderDetailsPage />,
           },
           {
@@ -49,10 +56,6 @@ export const router = createBrowserRouter([
             path: "/checkout/success/:orderId",
             element: <PaymentSuccessPage />,
           },
-          {
-            path: "/browse",
-            element: <MarketBrowsePage />,
-          },
         ],
       },
     ],
@@ -61,7 +64,7 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute />,
     children: [
       {
-        element: <RoleRoute allowedRoles={["seller"]} />,
+        element: <RoleRoute allowedRoles={["user", "admin", "seller"]} />,
         children: [
           {
             path: "/seller/dashboard",
@@ -92,6 +95,10 @@ export const router = createBrowserRouter([
         ],
       },
     ],
+  },
+  {
+    path: "/browse",
+    element: <MarketBrowsePage />,
   },
   {
     path: "/",
