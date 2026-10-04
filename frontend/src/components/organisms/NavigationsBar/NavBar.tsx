@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import SideBar from "./SideBar";
 import Typography from "@/components/atoms/typography/typography";
 import { useAuth } from "@/context/AuthContext";
+import NotificationDropdown from "./NotificationDropdown";
 
 const userNavItems = [
   {
@@ -22,49 +23,75 @@ const userNavItems = [
     href: "/myorders",
     className: "font-inter font-normal text-[14px] text-content-secondary",
   },
+  {
+    label: "My Listings",
+    href: "/seller/dashboard",
+    className: "font-inter font-normal text-[14px] text-content-secondary",
+  },
 ];
+
+const guestNavItems = [
+  {
+    label: "Home",
+    href: "/",
+    className: "font-inter font-normal text-[14px] text-content-secondary",
+  },
+  {
+    label: "Browse",
+    href: "/browse",
+    className: "font-inter font-normal text-[14px] text-content-secondary",
+  },
+];
+
+const adminNavItems = [
+  {
+    label: "Browse",
+    href: "/browse",
+    className: "font-inter font-normal text-[14px] text-content-secondary",
+  },
+  {
+    label: "My Orders",
+    href: "/myorders",
+    className: "font-inter font-normal text-[14px] text-content-secondary",
+  },
+  {
+    label: "My Listings",
+    href: "/seller/dashboard",
+    className: "font-inter font-normal text-[14px] text-content-secondary",
+  },
+  {
+    label: "Disputes",
+    href: "/admin/disputes",
+    className: "font-inter font-normal text-[14px] text-content-secondary",
+  },
+  {
+    label: "Dashboard",
+    href: "/admin/dashboard",
+    className: "font-inter font-normal text-[14px] text-content-secondary",
+  },
+];
+
 const navItems = {
-  guest: userNavItems,
-
+  guest: guestNavItems,
   user: userNavItems,
-
-  seller: [
-    {
-      label: "Browse",
-      href: "/browse",
-      className: "font-inter font-normal text-[14px] text-content-secondary",
-    },
-    {
-      label: "My Orders",
-      href: "/myorders",
-      className: "font-inter font-normal text-[14px] text-content-secondary",
-    },
-    {
-      label: "My Listings",
-      href: "/seller/dashboard",
-      className: "font-inter font-normal text-[14px] text-content-secondary",
-    },
-  ],
-
-  admin: [
-    {
-      label: "Dashboard",
-      href: "/admin/dashboard",
-      className: "font-inter font-normal text-[14px] text-content-secondary",
-    },
-    {
-      label: "Disputed",
-      href: "/admin/disputes",
-      className: "font-inter font-normal text-[14px] text-content-secondary",
-    },
-  ],
+  seller: userNavItems,
+  admin: adminNavItems,
 };
 
-export default function NavBar() {
+interface NavBarProps {
+  buttonLabel?: string;
+  isAuth?: boolean;
+}
+
+export default function NavBar({
+  buttonLabel = "Get Started",
+  isAuth: propIsAuth,
+}: NavBarProps = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, logout, user } = useAuth();
+  const { isAuthenticated: contextIsAuth, logout, user } = useAuth();
+  const isAuthenticated = propIsAuth ?? contextIsAuth;
 
   const items = user ? navItems[user.role] : userNavItems;
   console.log(items);
@@ -77,8 +104,8 @@ export default function NavBar() {
   };
   return (
     <>
-      <div className="flex justify-around items-center ">
-        <nav className="hidden sm:flex w-full justify-between items-center border-b border-outline-default ">
+      <div className="w-full flex justify-between items-center">
+        <nav className="hidden md:flex w-full justify-between items-center border-b border-outline-default px-4 lg:px-8">
           <div className="gap-4 ml-2">
             <Link to="/" className="flex items-center gap-2">
               <img
@@ -145,21 +172,25 @@ export default function NavBar() {
 
             {isAuthenticated && (
               <>
+                <Link to="/seller/dashboard">
+                  <Button
+                    variant="primary"
+                    size="small"
+                    className="whitespace-nowrap rounded-[8px]! text-[14px] font-[600] px-3.5 py-1.5 flex items-center gap-1.5"
+                  >
+                    <Icon icon="lucide:plus" className="w-4 h-4" />
+                    Sell
+                  </Button>
+                </Link>
                 <Button
-                  variant="primary"
+                  variant="ghost"
                   size="small"
-                  className=" whitespace-nowrap rounded-[8px]! text-[15px] font-[600] "
+                  className="whitespace-nowrap rounded-[8px]! text-[14px] font-[500] text-content-secondary hover:text-content-primary"
                   onClick={handleLogout}
                 >
                   Logout
                 </Button>
-                <Link to="/">
-                  <img
-                    src="/assets/icons/notificationIcon.png"
-                    alt=""
-                    className="w-[15px] h-[17px] "
-                  />
-                </Link>
+                <NotificationDropdown isAdmin={user?.role === "admin"} />
                 <Link to="/profile" title="View Profile">
                   <img
                     src="/assets/images/img.png"
@@ -175,8 +206,8 @@ export default function NavBar() {
         <div
           className={
             isOpen
-              ? "flex sm:hidden justify-between mt-2 px-3 flex-wrap w-full items-center"
-              : "flex w-full sm:hidden items-center justify-between mt-2 px-3 flex-wrap border border-outline-default rounded-xl px-[16px] py-1"
+              ? "flex md:hidden justify-between mt-2 px-3 flex-wrap w-full items-center"
+              : "flex w-full md:hidden items-center justify-between mt-2 px-3 flex-wrap border border-outline-default rounded-xl px-[16px] py-1"
           }
         >
           <div>
@@ -197,7 +228,10 @@ export default function NavBar() {
               </Link>
             </div>
           </div>
-          <div>
+          <div className="flex items-center gap-2">
+            {isAuthenticated && (
+              <NotificationDropdown isAdmin={user?.role === "admin"} />
+            )}
             <div className="cursor-pointer">
               {isOpen ? (
                 <Icon
@@ -225,7 +259,7 @@ export default function NavBar() {
         isAuth={isAuthenticated}
         user={user}
         onLogout={handleLogout}
-        buttonLabel={user?.role === "seller" ? "+ Sell" : "Get Started"}
+        buttonLabel={isAuthenticated ? "+ Sell" : "Get Started"}
       />
     </>
   );

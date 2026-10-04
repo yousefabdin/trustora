@@ -1,49 +1,71 @@
-import { getListing } from "@/services/Listingservice";
-
 import SellerItemCard from "./SellerItemCard";
-import { useEffect, useState } from "react";
+import type { MarketplaceListing } from "@/services/itemsServices";
+import { formatOrderNumber } from "@/components/molecules/cards/OrderCard";
+import type { User } from "@/types/auth";
+
+interface ListingLedgerProps {
+  currentPage: number;
+  setTotalPages?: (pages: number) => void;
+  setIsEditOpen: (open: boolean) => void;
+  setSelectedListing: (item: any) => void;
+  limit?: number;
+  user?: User | null;
+  items?: MarketplaceListing[];
+  isLoading?: boolean;
+}
 
 export default function ListingLedger({
-  sellerItems,
   currentPage,
-  setTotalPages,
   setIsEditOpen,
-  setModal,
-  limit,
   setSelectedListing,
-  user,
-}) {
-  const [items, setItems] = useState<typeof sellerItems>([]);
-  const onEdit = (listing) => {
-    setSelectedListing(listing);
+  limit = 8,
+  items = [],
+  isLoading = false,
+}: ListingLedgerProps) {
+  const onEdit = (listing: MarketplaceListing) => {
+    setSelectedListing({
+      id: listing.id,
+      name: listing.itemName,
+      description: listing.firstDescription,
+      price: listing.itemPrice,
+      category: listing.category,
+      images: listing.images,
+      status: listing.status || "active",
+    });
     setIsEditOpen(true);
   };
-  useEffect(() => {
-    const fetchItems = async () => {
-      if (!user?.id) return;
 
-      const response = await getListing({
-        currentPage,
-        limit,
-        sellerId: user.id,
-      });
-      setItems(response.data);
-      setTotalPages(response.totalPages);
-    };
-    fetchItems();
-  }, [currentPage, limit, user?.id]);
+  if (isLoading) {
+    return (
+      <div className="py-12 text-center text-content-secondary">
+        Loading your inventory...
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="p-8 text-center bg-white rounded-xl border border-gray-200 text-gray-500">
+        No listings found.
+      </div>
+    );
+  }
+
+  const start = (currentPage - 1) * limit;
+  const paginatedItems = items.slice(start, start + limit);
+
   return (
     <div className="flex flex-col gap-[12px]">
-      {items.map((item) => {
+      {paginatedItems.map((item) => {
         return (
           <SellerItemCard
             key={item.id}
-            id={item.id}
-            title={item.name}
-            image={item.images?.[0] ?? ""}
-            price={item.price}
-            views={item.views}
-            status={item.status}
+            id={formatOrderNumber(item.id)}
+            title={item.itemName}
+            image={item.img}
+            price={item.itemPrice as any}
+            views={12}
+            status={item.status || "active"}
             onEdit={() => onEdit(item)}
           ></SellerItemCard>
         );

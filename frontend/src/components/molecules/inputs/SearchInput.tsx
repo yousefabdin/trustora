@@ -3,20 +3,26 @@ import { useState } from "react";
 import clsx from "clsx";
 
 interface SearchInputProps {
+  value?: string;
   setSearch?: (value: string) => void;
   className?: string;
   placeholder?: string;
 }
 
 export default function SearchInput({
+  value,
   setSearch,
   className,
   placeholder,
 }: SearchInputProps) {
-  const [text, setText] = useState("");
+  const [internalText, setInternalText] = useState("");
+  const isControlled = value !== undefined;
+  const text = isControlled ? value : internalText;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setText(e.target.value);
+    if (!isControlled) {
+      setInternalText(e.target.value);
+    }
     setSearch?.(e.target.value);
   };
 

@@ -4,81 +4,65 @@ import { marketplaceListings } from "@/utils/ItemsSeed";
 import { useEffect, useState } from "react";
 import MarketBrowserPagination from "./MarketBrowserPagination";
 import { useNavigate } from "react-router-dom";
-import { getItems } from "@/services/itemsServices";
 import type { MarketplaceListing } from "@/utils/ItemsSeed";
 
 interface CardsListingProps {
   search?: string;
   items?: MarketplaceListing[];
+  onClearFilters?: () => void;
 }
 
-export default function CardsListing({ search, items: propItems }: CardsListingProps) {
-  const [items, setItems] = useState<typeof marketplaceListings>([]);
-  const [totalPages, setTotalPages] = useState(0);
+export default function CardsListing({
+  search,
+  items = [],
+  onClearFilters,
+}: CardsListingProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
   const limit = 8;
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, items]);
+  const totalPages = Math.ceil(items.length / limit) || 1;
+  const startIndex = (currentPage - 1) * limit;
+  const currentItems = items.slice(startIndex, startIndex + limit);
 
-  const handleClick = (id: number) => {
+  const handleClick = (id: string | number) => {
     navigate(`/item/${id}`);
   };
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, propItems]);
-
-  useEffect(() => {
-    if (propItems !== undefined) {
-      const startIndex = (currentPage - 1) * limit;
-      const endIndex = startIndex + limit;
-      setItems(propItems.slice(startIndex, endIndex));
-      setTotalPages(Math.ceil(propItems.length / limit));
-      return;
-    }
-
-    const fetchItems = async () => {
-      const response = await getItems({
-        currentPage,
-        limit,
-        search,
-      });
-
-      setItems(response.data);
-      setTotalPages(response.totalPages);
-    };
-
-    fetchItems();
-  }, [currentPage, search, propItems]);
   return (
-    <div className="flex flex-col items-center justify-center gap-[24px] px-[10px] md:px-[40px] py-[16px]">
-      <div className="flex w-full h-full items-center ">
-        <div className="w-full flex flex-wrap  gap-2 md:gap-3 justify-center md:justify-around">
-          {items.length === 0 ? (
-            <EmptyState
-              placeholder="No items found"
-              description="Your current filter combination didn't yield any results. Holdline secures high-value digital and physical assets via smart contracts. Try adjusting your parameters."
-              buttonLabel="Clear Filters"
-              buttonLink="#"
-            />
-          ) : (
-            items.map((card) => {
-              return (
-                <div onClick={() => handleClick(card.id)}>
-                  <ItemCard
-                    key={card.id}
-                    itemName={card.itemName}
-                    img={card.img}
-                    itemPrice={card.itemPrice}
-                    sellerName={card.sellerName}
-                    location={card.itemName}
-                  ></ItemCard>
-                </div>
-              );
-            })
-          )}
+    <div className="w-full flex flex-col items-center justify-center gap-[24px] md:py-[16px]">
+      {currentItems.length === 0 ? (
+        <div className="w-full min-h-[380px] flex items-center justify-center py-6">
+          <EmptyState
+            placeholder="No items found"
+            description="Your current filter combination didn't yield any results. Trustora secures high-value digital and physical assets via escrow protocol. Try adjusting your parameters."
+            buttonLabel="Clear Filters"
+            onAction={onClearFilters}
+          />
         </div>
-      </div>
-      {items.length > 0 && (
+      ) : (
+        <div className="w-full grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+          {currentItems.map((card) => (
+            <div key={card.id} onClick={() => handleClick(card.id)} className="h-full">
+              <ItemCard
+                id={card.id}
+                itemName={card.itemName}
+                img={card.img}
+                itemPrice={card.itemPrice}
+                sellerName={card.sellerName}
+                location={
+                  card.category
+                    ? card.category.charAt(0).toUpperCase() + card.category.slice(1)
+                    : "Verified"
+                }
+              />
+            </div>
+          ))}
+        </div>
+      )}
+      {totalPages > 1 && (
         <div className="w-full">
           <MarketBrowserPagination
             page={currentPage}

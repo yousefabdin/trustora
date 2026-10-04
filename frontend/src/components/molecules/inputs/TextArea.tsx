@@ -116,7 +116,7 @@ export default function TextArea({
             src={
               error
                 ? "/assets/icons/TextAreaErrorIcon.png"
-                : "/assest/icons/TextAreaIcon.png"
+                : "/assets/icons/TextAreaIcon.png"
             }
             alt=""
             className="h-[8px] w-[8px]"
@@ -127,7 +127,7 @@ export default function TextArea({
       {error && (
         <span className="flex items-center gap-1 text-danger-icon leading-3 font-medium text-[12px]">
           <img
-            src="/assest/icons/Vector.png"
+            src="/assets/icons/Vector.png"
             alt="error"
             className="h-[11.67px] w-[11.67px]"
           />

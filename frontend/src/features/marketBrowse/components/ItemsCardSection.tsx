@@ -8,15 +8,17 @@ import type { MarketplaceListing } from "@/utils/ItemsSeed";
 interface ItemsCardSectionProps {
   search?: string;
   items?: MarketplaceListing[];
+  onClearFilters?: () => void;
 }
 
 export default function ItemsCardSection({
   search,
   items,
+  onClearFilters,
 }: ItemsCardSectionProps) {
   return (
-    <div className="bg-page-secondary">
-      <div className="flex items-start justify-between gap-2  py-[2px] md:py-[24px] px-[10px] md:px-[40px]">
+    <div className="bg-page-secondary px-[16px] pt-[12px] pb-[4px] md:px-[40px] md:pt-[24px] md:pb-[8px]">
+      <div className="flex items-start justify-between gap-2 ">
         <div className="flex gap-2">
           <Typography
             variant="h2"
@@ -50,7 +52,11 @@ export default function ItemsCardSection({
           </Typography>
         </div>
       </div>
-      <CardsListingItems search={search} items={items}></CardsListingItems>
+      <CardsListingItems
+        search={search}
+        items={items}
+        onClearFilters={onClearFilters}
+      />
     </div>
   );
 }

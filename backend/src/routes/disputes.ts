@@ -12,11 +12,24 @@ disputesRouter.get(
   requireAdmin,
   asyncHandler(async (req, res) => {
     const orders = await prisma.order.findMany({
-      where: { status: 'disputed' },
+      where: {
+        OR: [
+          { status: 'disputed' },
+          { disputeReason: { not: null } },
+          {
+            events: {
+              some: {
+                type: { in: ['dispute_resolved_release', 'dispute_resolved_refund', 'disputed'] },
+              },
+            },
+          },
+        ],
+      },
       include: ORDER_FULL_INCLUDE,
-      orderBy: { createdAt: 'asc' },
+      orderBy: { updatedAt: 'desc' },
     });
 
     res.status(200).json(orders.map((o) => toOrderResponse(o, { id: req.user!.id, isAdmin: true })));
   }),
 );
+

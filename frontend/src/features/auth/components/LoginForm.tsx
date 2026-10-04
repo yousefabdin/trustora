@@ -1,13 +1,11 @@
 import Button from "@/components/atoms/Button/Button";
 import Typography from "@/components/atoms/typography/typography";
 import TextField from "@/components/molecules/inputs/TextField";
-import { Icon } from "@iconify/react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import ForgotPasswordModal from "./ForgotPasswordModal";
 
 import { useAuth } from "@/context/AuthContext";
-import { showToast } from "@/components/molecules/toast/Toast";
 export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,19 +15,13 @@ export default function LoginForm() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const user = await login({
-        email,
-        password,
-      });
+      const user = await login({ email, password });
 
       if (user.role === "user") navigate("/myorders");
       if (user.role === "seller") navigate("/seller/dashboard");
       if (user.role === "admin") navigate("/admin/dashboard");
     } catch (error) {
-      showToast({
-        variant: "error",
-        message: "Password or Email is wrong please try again",
-      });
+      return null;
     }
   };
   return (
@@ -91,7 +83,6 @@ export default function LoginForm() {
                   placeholder={"you@example.com"}
                   label=""
                   required={true}
-                  confirmation={true}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 ></TextField>

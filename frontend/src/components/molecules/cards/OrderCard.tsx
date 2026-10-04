@@ -23,35 +23,42 @@ export const getStatusBadgeClass = (status: OrderStatus) => {
   }
 };
 
-export const formatOrderNumber = (order: Order) => {
-  if (order.orderNumber) return order.orderNumber;
-  return `#HLD-${order.id.slice(0, 4).toUpperCase()}`;
+export const formatOrderNumber = (id: any) => {
+  if (!id && id !== 0) return "#HLD-0000";
+  if (typeof id === "object" && id !== null) {
+    if (id.orderNumber) return String(id.orderNumber);
+    if (id.id) id = id.id;
+    else return "#HLD-0000";
+  }
+  const strId = String(id);
+  if (strId.startsWith("#HLD-")) return strId;
+  const itemSlug = strId.length > 8 ? strId.slice(-4).toUpperCase() : strId.toUpperCase();
+  return `#HLD-${itemSlug}`;
 };
 
-export const formatPrice = (price: number) => {
-  return `$${price.toLocaleString("en-US", {
+export const formatPrice = (price: any) => {
+  const num = typeof price === "number" ? price : parseFloat(String(price || 0));
+  if (isNaN(num)) return "$0.00";
+  return `$${num.toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
 };
 
-export const formatDate = (order: Order) => {
-  if (order.displayDate) return order.displayDate;
-  if (!order.orderDate) return "";
-
-  const rawDate =
-    typeof order.orderDate === "object" &&
-    order.orderDate !== null &&
-    "orderDate" in order.orderDate
-      ? (order.orderDate as { orderDate: string }).orderDate
-      : order.orderDate;
+export const formatDate = (orderDate: any) => {
+  if (!orderDate) return "";
+  let rawDate = orderDate;
+  if (typeof orderDate === "object" && orderDate !== null) {
+    rawDate = orderDate.orderDate || orderDate.createdAt || orderDate.date || "";
+  }
 
   const date = new Date(String(rawDate));
-  if (isNaN(date.getTime())) return "";
+  if (isNaN(date.getTime())) return String(rawDate || "");
 
   return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
+    year: "numeric",
   });
 };
 
@@ -69,10 +76,10 @@ export default function OrderCard({ order, onClick }: OrderCardProps) {
     >
       <div className="flex items-center justify-between mb-3">
         <span className="font-jetbrains text-[12px] text-content-tertiary">
-          {formatOrderNumber(order)}
+          {formatOrderNumber(order.id)}
         </span>
         <span className="font-inter text-[12px] text-content-tertiary">
-          {formatDate(order)}
+          {formatDate(order.orderDate)}
         </span>
       </div>
 
@@ -94,7 +101,7 @@ export default function OrderCard({ order, onClick }: OrderCardProps) {
 
       <div className="flex items-center justify-between pt-1">
         <span className="font-jetbrains font-bold text-[15px] text-content-primary">
-          {formatPrice(order.totalPrice)}
+          {formatPrice(order.itemPrice)}
         </span>
         <span
           className={`inline-block rounded px-2.5 py-0.5 text-[11px] font-medium tracking-wide ${getStatusBadgeClass(

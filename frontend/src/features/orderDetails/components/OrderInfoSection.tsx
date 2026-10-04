@@ -1,16 +1,56 @@
-import Button from "@/components/atoms/Button/Button";
-import Typography from "@/components/atoms/typography/typography";
-import Cards from "@/components/molecules/cards/Cards";
 import OrderSummaryCard from "@/components/molecules/cards/OrderSummaryCard";
 import type { Order } from "@/utils/orderSeed";
 import OrderConfirmationCard from "./OrderConfirmationCard";
 import ActiviyLog from "./ActivityLog";
 import SellerBuyerCard from "./SellerBuyerCard";
 import LogisticsCard from "./LogisticsCard";
-interface OrderInfoSection {
+import { formatSeller } from "@/components/molecules/cards/OrderCard";
+import { useAuth } from "@/context/AuthContext";
+
+interface OrderInfoSectionProps {
   order: Order;
+  orderId: string;
+  handleOpenDisputed: (
+    reason: string,
+    description: string,
+    evidenceFiles?: string[]
+  ) => void | Promise<void>;
+  handleConfirmReceipt?: () => void | Promise<void>;
+  mode: string;
+  setMode: (mode: string) => void;
 }
-export default function OrderInfoSection({ order }: OrderInfoSection) {
+
+export default function OrderInfoSection({
+  order,
+  orderId,
+  handleOpenDisputed,
+  handleConfirmReceipt,
+  mode,
+  setMode,
+}: OrderInfoSectionProps) {
+  const { user } = useAuth();
+
+  const isBuyer = Boolean(
+    order.isBuyer ??
+      order.permissions?.isBuyer ??
+      (user &&
+        (user.id === order.buyerId ||
+          (order.buyerEmail &&
+            user.email?.toLowerCase() === order.buyerEmail.toLowerCase())))
+  );
+
+  const isSeller = Boolean(
+    !isBuyer &&
+      (order.isSeller ??
+        order.permissions?.isSeller ??
+        (user &&
+          (user.id === order.sellerId ||
+            (order.sellerEmail &&
+              user.email?.toLowerCase() === order.sellerEmail.toLowerCase()))))
+  );
+
+  const roleForOrder: "buyer" | "seller" = isSeller ? "seller" : "buyer";
+
   return (
     <div className="flex flex-col md:flex-row md:justify-around items-start gap-5">
       <div className="w-full flex flex-col gap-6">
@@ -19,7 +59,7 @@ export default function OrderInfoSection({ order }: OrderInfoSection) {
           itemDescription={order.itemDescription}
           itemSerial={order.itemSerial}
           itemImage={order.itemImg}
-          sellerName={order.sellerName}
+          sellerName={formatSeller(order.sellerName)}
           sellerImage={order.sellerAvatar}
           shippingMethod={order.shippingMethod}
           trackingNumber={order.trackingNumber}
@@ -29,15 +69,23 @@ export default function OrderInfoSection({ order }: OrderInfoSection) {
           itemPrice={order.itemPrice}
         />
         <div className="block md:hidden">
-          <SellerBuyerCard order={order}></SellerBuyerCard>
+          <SellerBuyerCard order={order} />
         </div>
         <div className="block md:hidden">
-          <LogisticsCard></LogisticsCard>
+          <LogisticsCard order={order} />
         </div>
-        <ActiviyLog order={order}></ActiviyLog>
+        <ActiviyLog order={order} />
       </div>
       <div className="hidden md:block">
-        <OrderConfirmationCard roles={"buyer"}></OrderConfirmationCard>
+        <OrderConfirmationCard
+          order={order}
+          orderId={orderId}
+          handleOpenDisputed={handleOpenDisputed}
+          onConfirmReceipt={handleConfirmReceipt}
+          roles={roleForOrder}
+          mode={mode}
+          setMode={setMode}
+        />
       </div>
     </div>
   );

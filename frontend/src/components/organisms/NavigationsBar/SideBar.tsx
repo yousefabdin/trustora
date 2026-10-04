@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import Button from "../../atoms/Button/Button";
 import Typography from "@/components/atoms/typography/typography";
+import NotificationDropdown from "./NotificationDropdown";
 
 export interface NavItem {
   label: string;
@@ -143,18 +144,7 @@ export default function SideBar({
                   </div>
                 </Link>
 
-                <Link
-                  to="/"
-                  onClick={onClose}
-                  className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-page-secondary transition-colors"
-                  aria-label="Notifications"
-                >
-                  <img
-                    src="/assets/icons/notificationIcon.png"
-                    alt="Notifications"
-                    className="w-4 h-4.5 object-contain"
-                  />
-                </Link>
+                <NotificationDropdown isAdmin={user?.role === "admin"} />
               </div>
             </div>
           )}
@@ -266,7 +256,7 @@ export default function SideBar({
           ) : (
             <div className="flex flex-col gap-2">
               <Link
-                to={user?.role === "seller" ? "/seller/dashboard" : "/browse"}
+                to={user ? "/seller/dashboard" : "/login"}
                 onClick={onClose}
                 className="w-full"
               >
@@ -281,7 +271,7 @@ export default function SideBar({
                     as="span"
                     className="font-semibold text-content-inverse"
                   >
-                    {user?.role === "seller" ? "My Listings" : "Sell Item"}
+                    Sell Item
                   </Typography>
                 </Button>
               </Link>

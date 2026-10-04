@@ -1,5 +1,6 @@
 import Button from "@/components/atoms/Button/Button";
 import Typography from "@/components/atoms/typography/typography";
+import { Link } from "react-router";
 
 export default function CtaBanner() {
   return (
@@ -27,13 +28,15 @@ export default function CtaBanner() {
           </Typography>
         </div>
         <div>
-          <Button
-            variant="secondary"
-            className="rounded-[8px]! font-semibold"
-            size="large"
-          >
-            Create Free Account
-          </Button>
+          <Link to={"/signup"}>
+            <Button
+              variant="secondary"
+              className="rounded-[8px]! font-semibold"
+              size="large"
+            >
+              Create Free Account
+            </Button>
+          </Link>
         </div>
       </div>
     </div>

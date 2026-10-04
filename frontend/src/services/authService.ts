@@ -1,119 +1,78 @@
+import api, { setAccessToken } from "@/apis/axios";
+
 import type {
+  AuthResponse,
+  BackendUserResponse,
   LoginCredentials,
   LoginResponse,
   MockUser,
   User,
 } from "@/types/auth";
-import { MockUsers } from "@/utils/userSeed";
 type RegisterCredentials = Pick<MockUser, "name" | "email" | "password">;
 const AUTH_TOKEN_KEY = "auth_token";
 
-const createMockToken = (user: User): string => {
-  const header = {
-    alg: "none",
-    typ: "JWT",
-  };
-  const payload = {
-    sub: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    exp: Math.floor(Date.now() / 1000) + 60 * 60,
-  };
-  const encode = (value: object) =>
-    btoa(JSON.stringify(value))
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
-
-  return `${encode(header)}.${encode(payload)}.mock-signature`;
-};
-
-export const register = async ({
-  name,
-  email,
-  password,
-}: RegisterCredentials): Promise<LoginResponse> => {
-  const normalizedEmail = email.trim().toLocaleLowerCase();
-  const existingUser = MockUsers.find(
-    (user) => user.email.toLowerCase() === normalizedEmail,
-  );
-  if (existingUser) throw new Error("Email is Already Register");
-  const newUser = {
-    id: crypto.randomUUID(),
-    name: name.trim(),
-    password,
-    email: normalizedEmail,
-    role: "user",
-  };
-  MockUsers.push(newUser);
-  return login({ password, email: normalizedEmail });
-};
-export const login = async ({
-  email,
-  password,
-}: LoginCredentials): Promise<LoginResponse> => {
-  const user = MockUsers.find(
-    (user) => user.email === email && user.password === password,
-  );
-  if (!user) {
-    throw new Error("Invalid email or password");
+export const adaptUser = (backendUser: BackendUserResponse): User => {
+  const roles = backendUser.roles || [];
+  let primaryRole: User["role"] = "user";
+  if (roles.includes("admin")) {
+    primaryRole = "admin";
   }
-
-  const authenticatedUser: User = {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-  };
-  const accessToken = createMockToken(authenticatedUser);
-
-  sessionStorage.setItem(AUTH_TOKEN_KEY, accessToken);
-
+  const namePart = backendUser.email.split("@")[0] || "User";
+  const displayName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
   return {
-    user: authenticatedUser,
-    accessToken,
+    id: backendUser.id,
+    email: backendUser.email,
+    name: displayName,
+    role: primaryRole,
+    roles,
   };
 };
-export const logout = (): void => {
-  sessionStorage.removeItem(AUTH_TOKEN_KEY);
+
+export const register = async (
+  credentials: RegisterCredentials,
+): Promise<User> => {
+  const response = await api.post<AuthResponse>("/auth/signup", {
+    email: credentials.email.trim().toLowerCase(),
+    password: credentials.password,
+    roles: ["buyer", "seller"],
+  });
+  const { user, accessToken } = response.data;
+
+  setAccessToken(accessToken);
+
+  return adaptUser(user);
+};
+
+export const login = async (credentials: LoginCredentials): Promise<User> => {
+  const response = await api.post<AuthResponse>("/auth/login", {
+    email: credentials.email.trim().toLowerCase(),
+    password: credentials.password,
+  });
+  const { user, accessToken } = response.data;
+  setAccessToken(accessToken);
+  return adaptUser(user);
+};
+export const logout = async (): Promise<void> => {
+  try {
+    await api.post("/auth/logout");
+  } finally {
+    setAccessToken(null);
+  }
 };
 export const getToken = (): string | null => {
   return sessionStorage.getItem(AUTH_TOKEN_KEY);
 };
 
-export const decodeMockToken = (accessToken: string): User | null => {
+export const getCurrentUser = async (): Promise<User | null> => {
   try {
-    const payload = accessToken.split(".")[1];
+    const refreshRes = await api.post<{ accessToken: string }>("/auth/refresh");
+    const token = refreshRes.data.accessToken;
+    setAccessToken(token);
 
-    if (!payload) {
-      return null;
-    }
-
-    const decodedPayload = JSON.parse(
-      atob(payload.replace(/-/g, "+").replace(/_/g, "/")),
-    );
-
-    if (decodedPayload.exp < Math.floor(Date.now() / 1000)) {
-      return null;
-    }
-
-    return {
-      id: decodedPayload.sub,
-      name: decodedPayload.name,
-      email: decodedPayload.email,
-      role: decodedPayload.role,
-    };
+    const meRes = await api.get<BackendUserResponse>("/me");
+    return adaptUser(meRes.data);
   } catch {
+    setAccessToken(null);
     return null;
   }
-};
-export const getCurrentUser = (): User | null => {
-  const token = getToken();
-
-  if (!token) {
-    return null;
-  }
-
-  return decodeMockToken(token);
 };

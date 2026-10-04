@@ -2,14 +2,21 @@ import Button from "@/components/atoms/Button/Button";
 import Typography from "@/components/atoms/typography/typography";
 import { Icon } from "@iconify/react";
 
+interface ListingFooterProps {
+  sellerItems: any[];
+  currentPage: number;
+  setCurrentPage: (page: number) => void;
+  totalPages: number;
+  limit: number;
+}
+
 export default function ListingFooter({
   sellerItems,
   currentPage,
   setCurrentPage,
   totalPages,
   limit,
-}) {
-  console.log(totalPages);
+}: ListingFooterProps) {
   return (
     <div className=" flex items-center justify-center md:justify-between py-[16px]">
       <Typography

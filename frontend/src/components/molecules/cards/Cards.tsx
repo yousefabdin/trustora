@@ -2,19 +2,20 @@ import Button from "@/components/atoms/Button/Button";
 import Typography from "@/components/atoms/typography/typography";
 import { Icon } from "@iconify/react";
 import { useState } from "react";
+import clsx from "clsx";
 import TextFieldInput from "../inputs/TextField";
 import TextArea from "../inputs/TextArea";
 
 interface CardProps {
   variant:
-    | "feedbackCard"
-    | "featureCard"
-    | "buyerCard"
-    | "sellerCard"
-    | "itemDetailcard"
-    | "sellerDetailsCard"
-    | "makeOfferCard"
-    | "orderSummaryCard";
+  | "feedbackCard"
+  | "featureCard"
+  | "buyerCard"
+  | "sellerCard"
+  | "itemDetailcard"
+  | "sellerDetailsCard"
+  | "makeOfferCard"
+  | "orderSummaryCard";
   icon?: string;
   className?: React.ReactNode;
   children: React.ReactNode;
@@ -28,6 +29,8 @@ interface CardProps {
   price?: number;
   onBuyNow?: () => void;
   onMakeOffer?: () => void;
+  isOwnListing?: boolean;
+  isSold?: boolean;
   itemName?: string;
   listPrice?: number | string;
   onCloseModal?: () => void;
@@ -67,6 +70,8 @@ export default function Cards({
   price = 12.45,
   onBuyNow,
   onMakeOffer,
+  isOwnListing = false,
+  isSold = false,
   itemName = "Vintage Leica M6",
   listPrice = "1,245.00",
   onCloseModal,
@@ -94,9 +99,8 @@ export default function Cards({
   const cardVariant = {
     orderSummaryCard: (
       <div
-        className={`w-[440px] p-[24px] rounded-[6px] border border-[#EBEBE9] bg-[#F5F5F4] flex flex-col gap-[20px] ${
-          className ?? ""
-        }`}
+        className={`w-full min-h-[581px] p-[20px] sm:p-[24px] rounded-[6px] border border-[#EBEBE9] bg-[#F5F5F4] flex flex-col gap-[24px] overflow-hidden ${className ?? ""
+          }`}
       >
         <Typography
           variant="h2"
@@ -104,23 +108,23 @@ export default function Cards({
         >
           Order Summary
         </Typography>
-        <div className="flex items-center justify-between gap-3 pb-10">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-2.5 pb-8">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
             <img
               src={itemImg}
               alt={itemName}
-              className="w-[64px] h-[64px] rounded-[8px] object-cover flex-shrink-0 border border-outline-subtle"
+              className="w-12 h-12 sm:w-[64px] sm:h-[64px] rounded-[8px] object-cover flex-shrink-0 border border-outline-subtle"
             />
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[15px] font-bold text-heading leading-snug">
+            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+              <span className="text-[14px] sm:text-[15px] font-bold text-heading leading-snug truncate">
                 {itemName}
               </span>
-              <span className="text-xs text-content-tertiary">
+              <span className="text-xs text-content-tertiary truncate">
                 Seller: @{sellerHandle}
               </span>
             </div>
           </div>
-          <span className="text-[15px] font-mono font-semibold text-heading flex-shrink-0">
+          <span className="text-[14px] sm:text-[15px] font-mono font-semibold text-heading shrink-0 pl-1.5">
             ${price.toLocaleString("en-US", { minimumFractionDigits: 2 })}
           </span>
         </div>
@@ -219,9 +223,8 @@ export default function Cards({
         style={{
           boxShadow: "0px 12px 32px 0px #00000010",
         }}
-        className={`p-[32px] rounded-[6px] border border-[#EBEBE9] bg-surface-default flex flex-col justify-between gap-[24px] ${
-          className ?? ""
-        }`}
+        className={`p-5 sm:p-[32px] w-full max-w-[92vw] sm:max-w-[480px] rounded-[6px] border border-outline-default bg-surface-default flex flex-col justify-between gap-[24px] ${className ?? ""
+          }`}
       >
         <div className="flex items-start justify-between">
           <div className="flex flex-col gap-1">
@@ -251,10 +254,12 @@ export default function Cards({
             <TextFieldInput
               label="Your Offer Amount"
               type="text"
-              value={`$ ${offerAmount}`}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setOfferAmount(e.target.value.replace("$ ", ""))
-              }
+              placeholder="1,150.00"
+              value={offerAmount ? (offerAmount.startsWith("$") ? offerAmount : `$ ${offerAmount}`) : ""}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const cleaned = e.target.value.replace(/^\$\s*/, "");
+                setOfferAmount(cleaned);
+              }}
               className=" text-lg font-mono font-semibold py-2.5 px-4 rounded-[6px] border border-[#818CF8] focus:outline-none focus:ring-2 focus:ring-accent-default"
             />
             <span className="text-xs text-content-tertiary">
@@ -315,9 +320,8 @@ export default function Cards({
     itemDetailcard: (
       <>
         <div
-          className={`w-full max-w-[480px] h-full  bg-page-primary p-6 md:p-8 border border-outline-subtle rounded-[16px] flex flex-col gap-5 ${
-            className ?? ""
-          }`}
+          className={`w-full lg:max-w-[480px] h-full bg-page-primary p-6 md:p-8 border border-outline-subtle rounded-[16px] flex flex-col gap-5 ${className ?? ""
+            }`}
         >
           <div className="flex flex-col gap-2">
             <span className="self-start px-3 py-1 bg-[#F4F4F5] text-content-secondary text-[12px] font-semibold rounded-md">
@@ -377,26 +381,62 @@ export default function Cards({
             </Typography>
           </div>
 
-          <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-escrow-surface text-escrow-foreground text-xs font-semibold rounded-lg">
+          <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-[#FEF9C3] text-[#854D0E] text-xs font-semibold rounded-lg border border-[#FEF08A]/60">
             <Icon
               icon="heroicons:lock-closed-20-solid"
-              className="w-4 h-4 flex-shrink-0"
+              className="w-4 h-4 flex-shrink-0 text-[#A16207]"
             />
             <span>Payment held in escrow until confirmed</span>
           </div>
 
+          {isOwnListing && (
+            <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-amber-50 text-amber-900 text-xs font-semibold rounded-lg border border-amber-200">
+              <Icon
+                icon="heroicons:information-circle-20-solid"
+                className="w-4 h-4 flex-shrink-0 text-amber-600"
+              />
+              <span>This is your listing. You cannot purchase items you have listed.</span>
+            </div>
+          )}
+
+          {isSold && !isOwnListing && (
+            <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-neutral-100 text-neutral-800 text-xs font-semibold rounded-lg border border-neutral-300">
+              <Icon
+                icon="heroicons:shopping-bag-20-solid"
+                className="w-4 h-4 flex-shrink-0 text-neutral-500"
+              />
+              <span>This item has been purchased and is no longer available.</span>
+            </div>
+          )}
+
           <div className="flex flex-col gap-3 pt-1">
             <Button
               variant="primary"
+              disabled={isOwnListing || isSold}
               onClick={onBuyNow}
-              className="w-full py-3 rounded-lg font-semibold text-[15px] bg-accent-default hover:bg-[#4338CA] text-white"
+              className={clsx(
+                "w-full py-3 rounded-lg font-semibold text-[15px] transition-all",
+                (isOwnListing || isSold)
+                  ? "bg-neutral-200! text-neutral-400! border border-neutral-300! cursor-not-allowed hover:bg-neutral-200!"
+                  : "bg-[#4F46E5] hover:bg-[#4338CA] text-white"
+              )}
             >
-              Buy Now
+              {isOwnListing
+                ? "Your Listing (Cannot Purchase)"
+                : isSold
+                ? "Item Sold"
+                : "Buy Now"}
             </Button>
             <Button
               variant="ghost"
+              disabled={isOwnListing || isSold}
               onClick={onMakeOffer}
-              className="w-full py-3 rounded-lg font-semibold text-sm border border-accent-default text-accent-default hover:bg-indigo-50"
+              className={clsx(
+                "w-full py-3 rounded-lg font-semibold text-sm border",
+                (isOwnListing || isSold)
+                  ? "border-neutral-200! text-neutral-400! cursor-not-allowed hover:bg-transparent!"
+                  : "border-[#4F46E5] text-[#4F46E5] hover:bg-indigo-50/50"
+              )}
             >
               Make Offer
             </Button>
@@ -628,9 +668,8 @@ export default function Cards({
     sellerDetailsCard: (
       <>
         <div
-          className={`w-full bg-page-primary p-6 md:py-[20px] px-[20px] border border-outline-subtle rounded-[16px] flex flex-col gap-5 ${
-            className ?? ""
-          }`}
+          className={`w-full bg-page-primary p-6 md:py-[20px] px-[20px] border border-outline-subtle rounded-[16px] flex flex-col gap-5 ${className ?? ""
+            }`}
         >
           <Typography
             variant="h3"
@@ -640,7 +679,7 @@ export default function Cards({
           </Typography>
 
           <div className="flex items-center justify-start gap-3">
-            <div className="w-12 h-12 rounded-full bg-[#4F46E5] text-white font-bold flex items-center justify-between text-lg overflow-hidden ">
+            <div className="w-10 h-10 rounded-full bg-[#4F46E5] text-white font-bold flex items-center justify-center text-base shrink-0 overflow-hidden">
               {sellerAvatar ? (
                 <img
                   src={sellerAvatar}
@@ -648,15 +687,15 @@ export default function Cards({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                username?.toUpperCase()
+                (username?.replace(/^@/, "")?.[0] || "C").toUpperCase()
               )}
             </div>
             <div className="flex flex-col gap-0.5">
-              <span className="text-[17px] font-bold text-heading">
-                {username}
+              <span className="text-[16px] font-bold text-heading">
+                @{username?.replace(/^@/, "") ?? "camera_collector"}
               </span>
-              <span className="text-sm text-content-tertiary">
-                Member since 2018
+              <span className="text-xs text-content-tertiary">
+                Member since May 2021
               </span>
             </div>
           </div>
@@ -668,6 +707,9 @@ export default function Cards({
               <span className="text-xs font-semibold text-content-tertiary uppercase tracking-wider">
                 COMPLETED ESCROWS
               </span>
+              <span className="text-[15px] font-bold text-heading">
+                148 transactions
+              </span>
             </div>
 
             <div className="flex flex-col gap-1 items-end">
@@ -677,10 +719,10 @@ export default function Cards({
               <div className="flex items-center gap-1.5">
                 <Icon
                   icon="iconamoon:star-bold"
-                  className="w-5 h-5 text-amber-500"
+                  className="w-4 h-4 text-amber-500"
                 />
-                <span className="text-lg font-bold text-heading">
-                  {sellerRating} / 5.0
+                <span className="text-[15px] font-bold text-heading">
+                  {sellerRating ? Number(sellerRating).toFixed(1) : "4.9"} / 5.0
                 </span>
               </div>
             </div>

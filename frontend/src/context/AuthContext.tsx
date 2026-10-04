@@ -7,6 +7,9 @@ import {
   Children,
 } from "react";
 import { showToast } from "@/components/molecules/toast/Toast";
+
+import { getApiErrorMessage } from "@/apis/axios";
+
 export interface RegisterCredentials {
   name: string;
   email: string;
@@ -21,7 +24,7 @@ interface AuthContextType {
   isLoading: boolean;
   register: (credentials: RegisterCredentials) => Promise<User>;
   login: (credentials: LoginCredentials) => Promise<User>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -31,46 +34,77 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
+  const restoreSession = async (isMounted) => {
+    try {
+      const currentUser = await authService.getCurrentUser();
+      if (isMounted) {
+        setUser(currentUser);
+      }
+    } catch {
+      if (isMounted) {
+        setUser(null);
+      }
+    } finally {
+      if (isMounted) {
+        setIsLoading(false);
+      }
+    }
+  };
   useEffect(() => {
-    const currentUser = authService.getCurrentUser();
+    let isMounted = true;
 
-    setUser(currentUser);
-    setIsLoading(false);
+    restoreSession(isMounted);
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const register = async (
-    credentials: RegisterCredentials,
-  ): Promise<LoginResponse> => {
-    const response = await authService.register(credentials);
-
-    setUser(response.user);
-
-    showToast({
-      variant: "success",
-      message: `Registration Successful, Welcome ${response.user.name}`,
-    });
-    return response.user;
+  const register = async (credentials: RegisterCredentials): Promise<User> => {
+    try {
+      const newUser = await authService.register(credentials);
+      setUser(newUser);
+      showToast({
+        variant: "success",
+        message: `Registration successful! Welcome, ${newUser.name}`,
+      });
+      return newUser;
+    } catch (error) {
+      showToast({
+        variant: "error",
+        message: getApiErrorMessage(error, "Registration failed"),
+      });
+      throw error;
+    }
   };
 
-  const login = async (credentials: LoginCredentials) => {
-    const response = await authService.login(credentials);
-
-    setUser(response.user);
-    showToast({
-      variant: "success",
-      message: `Login Successfull , Welcome Back ${user?.name}`,
-    });
-    return response.user;
+  const login = async (credentials: LoginCredentials): Promise<User> => {
+    try {
+      const authenticatedUser = await authService.login(credentials);
+      setUser(authenticatedUser);
+      showToast({
+        variant: "success",
+        message: `Welcome back, ${authenticatedUser.name}!`,
+      });
+      return authenticatedUser;
+    } catch (error) {
+      showToast({
+        variant: "error",
+        message: getApiErrorMessage(error, "Invalid email or password"),
+      });
+      throw error;
+    }
   };
-  const logout = () => {
-    authService.logout();
-    setUser(null);
-
-    showToast({
-      variant: "success",
-      message: `logout Successfull , Goodbye ${user?.name}`,
-    });
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } finally {
+      setUser(null);
+      showToast({
+        variant: "info",
+        message: "You have been logged out.",
+      });
+    }
   };
 
   return (

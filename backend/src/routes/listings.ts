@@ -15,33 +15,77 @@ listingsRouter.get(
   '/',
   validateQuery(listingQuerySchema),
   asyncHandler(async (req, res) => {
-    const { search, category, minPrice, maxPrice } = req.query as unknown as {
+    const { search, category, minPrice, maxPrice, sortBy } = req.query as unknown as {
       search?: string;
       category?: string;
       minPrice?: number;
       maxPrice?: number;
+      sortBy?: string;
     };
 
+    const andConditions: any[] = [{ status: 'active' }];
+
+    if (category && category.toLowerCase() !== 'all') {
+      const catLower = category.toLowerCase().trim();
+      const terms = [catLower];
+      if (catLower === 'fashion' || catLower === 'apparel') {
+        terms.push('fashion', 'apparel', 'clothing');
+      } else if (catLower === 'home') {
+        terms.push('home', 'living', 'furniture');
+      }
+      andConditions.push({
+        OR: terms.map((t) => ({ category: { contains: t, mode: 'insensitive' as const } })),
+      });
+    }
+
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      andConditions.push({
+        priceCents: {
+          ...(minPrice !== undefined ? { gte: minPrice } : {}),
+          ...(maxPrice !== undefined ? { lte: maxPrice } : {}),
+        },
+      });
+    }
+
+    if (search && search.trim() !== '') {
+      const s = search.trim();
+      andConditions.push({
+        OR: [
+          { title: { contains: s, mode: 'insensitive' as const } },
+          { description: { contains: s, mode: 'insensitive' as const } },
+          { category: { contains: s, mode: 'insensitive' as const } },
+        ],
+      });
+    }
+
+    let orderBy: any = { createdAt: 'desc' };
+    if (sortBy === 'price-low-high') {
+      orderBy = { priceCents: 'asc' };
+    } else if (sortBy === 'price-high-low') {
+      orderBy = { priceCents: 'desc' };
+    } else if (sortBy === 'newest') {
+      orderBy = { createdAt: 'desc' };
+    }
+
     const listings = await prisma.listing.findMany({
-      where: {
-        status: 'active',
-        ...(category ? { category } : {}),
-        ...(minPrice !== undefined || maxPrice !== undefined
-          ? { priceCents: { ...(minPrice !== undefined ? { gte: minPrice } : {}), ...(maxPrice !== undefined ? { lte: maxPrice } : {}) } }
-          : {}),
-        ...(search
-          ? {
-              OR: [
-                { title: { contains: search, mode: 'insensitive' } },
-                { description: { contains: search, mode: 'insensitive' } },
-              ],
-            }
-          : {}),
-      },
+      where: { AND: andConditions },
+      include: SELLER_INCLUDE,
+      orderBy,
+    });
+
+    res.status(200).json(listings.map(toListingResponse));
+  }),
+);
+
+listingsRouter.get(
+  '/mine',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const listings = await prisma.listing.findMany({
+      where: { sellerId: req.user!.id },
       include: SELLER_INCLUDE,
       orderBy: { createdAt: 'desc' },
     });
-
     res.status(200).json(listings.map(toListingResponse));
   }),
 );
@@ -61,15 +105,23 @@ listingsRouter.post(
   requireRole('seller'),
   validateBody(createListingSchema),
   asyncHandler(async (req, res) => {
-    const { title, description, category, priceCents } = req.body as {
+    const { title, description, category, priceCents, status } = req.body as {
       title: string;
       description: string;
       category: string;
       priceCents: number;
+      status?: 'active' | 'draft';
     };
 
     const listing = await prisma.listing.create({
-      data: { sellerId: req.user!.id, title, description, category, priceCents },
+      data: {
+        sellerId: req.user!.id,
+        title,
+        description,
+        category,
+        priceCents,
+        status: status || 'active',
+      },
       include: SELLER_INCLUDE,
     });
 

@@ -1,6 +1,6 @@
 import { Icon } from "@iconify/react";
 import TextField from "@mui/material/TextField";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { InputAdornment } from "@mui/material";
 import {
   getPasswordRequirements,
@@ -9,22 +9,38 @@ import {
 
 interface TextFieldProps {
   disabled?: boolean;
-  type: "password" | "email" | "text" | "number" | "confirmPassword";
+  type: "password" | "email" | "text" | "number" | "confirmPassword" | "tel";
   placeholder: string;
   helper?: string;
-  label: string;
-  required: boolean;
+  label?: string;
+  required?: boolean;
   className?: string;
-  confirmation: boolean;
+  confirmation?: boolean;
 
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
 
   password?: string;
 
   setPasswordStrength?: (strength: string) => void;
   setPassedRules?: (count: number) => void;
   setPassword?: (password: string) => void;
+
+  errorMessage?: string;
+  maxLength?: number;
+  inputMode?:
+    | "text"
+    | "numeric"
+    | "tel"
+    | "search"
+    | "email"
+    | "url"
+    | "decimal"
+    | "none";
+  id?: string;
+  name?: string;
+  endIcon?: React.ReactNode;
 }
 
 export default function TextFieldInput({
@@ -38,13 +54,33 @@ export default function TextFieldInput({
   confirmation,
   value,
   onChange,
+  onBlur,
   password,
   setPasswordStrength,
   setPassedRules,
   setPassword,
+  errorMessage,
+  maxLength,
+  inputMode,
+  id,
+  name,
+  endIcon,
 }: TextFieldProps) {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const activeError = errorMessage !== undefined ? errorMessage : error;
+
+  useEffect(() => {
+    if (confirmation || type === "confirmPassword") {
+      if (value && password !== undefined) {
+        if (value !== password) {
+          setError("Passwords are not Matching");
+        } else {
+          setError("");
+        }
+      }
+    }
+  }, [password, value, confirmation, type]);
 
   const errorIcon = (
     <Icon
@@ -56,8 +92,8 @@ export default function TextFieldInput({
 
   const passwordEyeIcon = (
     <Icon
-      className="h-[18px] w-[18px] text-content-tertiary"
-      icon="weui:eyes-on-outlined"
+      className="h-[18px] w-[18px] text-content-tertiary hover:text-content-primary transition-colors"
+      icon={showPassword ? "weui:eyes-off-outlined" : "weui:eyes-on-outlined"}
     />
   );
 
@@ -65,7 +101,7 @@ export default function TextFieldInput({
     const inputValue = e.target.value;
     const input = e.target;
 
-    onChange(e);
+    onChange?.(e);
 
     if (inputValue === "") {
       setError("");
@@ -75,6 +111,11 @@ export default function TextFieldInput({
       setPasswordStrength?.("weak");
       setPassword?.("");
 
+      return;
+    }
+
+    if (errorMessage !== undefined) {
+      input.setCustomValidity("");
       return;
     }
 
@@ -126,7 +167,7 @@ export default function TextFieldInput({
     }
 
     if (type === "text") {
-      if (/^[a-zA-Z0-9@\s]*$/.test(inputValue)) {
+      if (/^[a-zA-Z0-9@\s,.'#\-/()$€£¥]*$/.test(inputValue)) {
         setError("");
         input.setCustomValidity("");
       } else {
@@ -138,7 +179,7 @@ export default function TextFieldInput({
     }
 
     if (type === "number") {
-      if (/^[0-9\s]*$/.test(inputValue)) {
+      if (/^[0-9\s/]*$/.test(inputValue)) {
         setError("");
         input.setCustomValidity("");
       } else {
@@ -164,26 +205,32 @@ export default function TextFieldInput({
 
       <TextField
         placeholder={placeholder}
-        id="standard-error-helper-text"
+        id={id || "standard-error-helper-text"}
+        name={name}
         disabled={disabled}
         className={className}
-        error={!!error}
+        error={!!activeError}
         helperText={
-          error ? (
+          activeError ? (
             <span className="flex items-center gap-1 text-[12px] leading-[18px] text-danger-icon">
               {errorIcon}
-              {error}
+              {activeError}
             </span>
           ) : null
         }
         type={
-          (type === "password" || type === "confirmPassword") && !showPassword
-            ? "password"
-            : "text"
+          type === "password" || type === "confirmPassword"
+            ? showPassword
+              ? "text"
+              : "password"
+            : type === "number"
+              ? "text"
+              : type
         }
         required={required}
-        value={value}
+        value={value ?? ""}
         onChange={handleChange}
+        onBlur={onBlur}
         sx={{
           width: "full",
           text: "text-content-primary",
@@ -258,27 +305,29 @@ export default function TextFieldInput({
           },
         }}
         slotProps={{
+          htmlInput: {
+            maxLength,
+            inputMode: inputMode ?? (type === "number" ? "numeric" : undefined),
+          },
           input: {
-            endAdornment: (type === "password" ||
-              type === "confirmPassword") && (
-              <button
-                type="button"
-                onClick={handleClickIcon}
-                className={
-                  error
-                    ? "flex-1 flex-row bg-danger-surface h-full items-end"
-                    : ""
-                }
-              >
-                <InputAdornment
-                  position="end"
-                  sx={{ marginRight: "12px" }}
-                  className="cursor-pointer"
-                >
-                  {passwordEyeIcon}
+            endAdornment:
+              type === "password" || type === "confirmPassword" ? (
+                <InputAdornment position="end" sx={{ marginRight: "12px" }}>
+                  <button
+                    type="button"
+                    onClick={handleClickIcon}
+                    onMouseDown={(e) => e.preventDefault()}
+                    className="cursor-pointer focus:outline-none flex items-center justify-center p-0 border-0 bg-transparent text-content-tertiary"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {passwordEyeIcon}
+                  </button>
                 </InputAdornment>
-              </button>
-            ),
+              ) : endIcon ? (
+                <InputAdornment position="end" sx={{ marginRight: "12px" }}>
+                  {endIcon}
+                </InputAdornment>
+              ) : null,
           },
         }}
       />

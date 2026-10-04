@@ -22,7 +22,7 @@ const platformFees = 15;
 export interface Order {
   id: string;
   orderNumber?: string;
-  listingId: number;
+  listingId: string | number;
   itemName: string;
   itemDescription: string;
   itemSerial: string;
@@ -37,8 +37,33 @@ export interface Order {
   sellerName: string;
   sellerAvatar: string;
   buyerName: string;
+  buyerAvatar?: string;
   shippingMethod: string;
   trackingNumber: string;
+  disputeReason?: string;
+  disputeNote?: string;
+  evidenceFiles?: { name: string; url?: string }[];
+  createdAt?: string;
+  priority?: "Low" | "Medium" | "High" | "Critical";
+  buyer?: string;
+  seller?: string;
+  sellerId?: string;
+  sellerEmail?: string;
+  buyerId?: string;
+  buyerEmail?: string;
+  amount?: string;
+  isBuyer?: boolean;
+  isSeller?: boolean;
+  rawStatus?: string;
+  permissions?: {
+    isBuyer?: boolean;
+    isSeller?: boolean;
+    canShip?: boolean;
+    canConfirmReceipt?: boolean;
+    canDispute?: boolean;
+    canResolveDispute?: boolean;
+  };
+  events?: any[];
   statusHistory: OrderStatusHistory[];
 }
 

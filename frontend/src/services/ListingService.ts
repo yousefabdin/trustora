@@ -1,71 +1,62 @@
-import { useAuth } from "@/context/AuthContext";
-import { sellerListings, type ListingType } from "@/utils/sellerListingSeed";
-export interface GetListringParams {
-  currentPage: number;
-  limit: number;
-  sellerId: string;
-}
-interface CreateListingData {
+import {
+  adaptListing,
+  type BackendListing,
+  type MarketplaceListing,
+} from "./itemsServices";
+import api from "@/apis/axios";
+
+export interface CreateListingInput {
   title: string;
   description: string;
   category: string;
-  condition: string;
-  images: string[];
-  price: string;
-  sellerId: string;
+  priceCents: number;
+  status?: "active" | "draft";
 }
 
-export interface PaginatedItems {
-  data: typeof sellerListings;
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  currentPage: number;
+export interface UpdateListingInput {
+  title?: string;
+  description?: string;
+  category?: string;
+  priceCents?: number;
+  status?: "active" | "inactive" | "draft" | "sold";
 }
 
-export const getListing = async ({
-  currentPage,
-  limit,
-  sellerId,
-}: GetListringParams): Promise<PaginatedItems> => {
-  await new Promise((resolve) => setTimeout(resolve, 400));
-
-  const sellerItems = sellerListings.filter((item) => {
-    return item.sellerId === sellerId;
-  });
-  console.log(sellerItems);
-  const startIndex = (currentPage - 1) * limit;
-  const endIndex = startIndex + limit;
-  console.log(sellerItems);
-  const data = sellerItems.slice(startIndex, endIndex);
-
-  return {
-    data,
-    page: currentPage,
-    currentPage,
-    limit,
-    total: sellerItems.length,
-    totalPages: Math.ceil(sellerItems.length / limit),
-  };
+export const getSellerListings = async (
+  sellerId?: string,
+): Promise<MarketplaceListing[]> => {
+  try {
+    const response = await api.get<BackendListing[]>("/listings/mine");
+    return response.data.map(adaptListing);
+  } catch {
+    const response = await api.get<BackendListing[]>("/listings");
+    const filtered = sellerId
+      ? response.data.filter((item) => item.sellerId === sellerId)
+      : response.data;
+    return filtered.map(adaptListing);
+  }
 };
-export const createItem = (data: CreateListingData) => {
-  const newListing: ListingType = {
-    id: `listing-${Date.now()}`,
-    sellerId: data.sellerId,
-    name: data.title,
-    description: data.description,
-    category: data.category as ListingCategory,
-    condition: data.condition as ListingCondition,
-    images: data.images,
-    price: Number(data.price),
-    status: "Active",
-    views: 0,
-  };
 
-  console.log("NEW LISTING:", newListing);
+export const createListing = async (
+  data: CreateListingInput,
+): Promise<MarketplaceListing> => {
+  const response = await api.post<BackendListing>("/listings", {
+    title: data.title.trim(),
+    description: data.description.trim(),
+    category: data.category.toLowerCase().trim(),
+    priceCents: data.priceCents,
+    status: data.status || "active",
+  });
+  return adaptListing(response.data);
+};
 
-  sellerListings.unshift(newListing);
+export const updateListing = async (
+  id: string,
+  data: UpdateListingInput,
+): Promise<MarketplaceListing> => {
+  const response = await api.patch<BackendListing>(`/listings/${id}`, data);
+  return adaptListing(response.data);
+};
 
-  return newListing;
+export const deleteListing = async (id: string): Promise<void> => {
+  await api.delete(`/listings/${id}`);
 };

@@ -1,7 +1,6 @@
-import React from "react";
 import { Icon } from "@iconify/react";
-import Typography from "@/components/atoms/typography/typography"; // Adjust path as needed
-import { type Dispute, type DisputeStatusHistory } from "@/utils/disputedSeed"; // Adjust path as needed
+import Typography from "@/components/atoms/typography/typography";
+import type { Order } from "@/utils/orderSeed";
 
 interface ActivityItem {
   title: string;
@@ -10,38 +9,52 @@ interface ActivityItem {
 }
 
 interface DisputeActivityLogProps {
-  dispute?: Dispute;
+  disputeOrder?: Order;
   activities?: ActivityItem[];
   onMoreClick?: () => void;
 }
 
 export default function DisputeActivityLog({
-  dispute,
+  disputeOrder,
   activities,
   onMoreClick,
 }: DisputeActivityLogProps) {
-  console.log(dispute);
-  const activeLogs =
+  const formatLogTime = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const defaultLogs: ActivityItem[] = [
+    { title: "Admin assigned", timestamp: "Aug 9, 09:15 AM" },
+    { title: "Seller responded", timestamp: "Aug 8, 11:30 AM" },
+    { title: "Dispute filed", timestamp: "Aug 7, 02:15 PM" },
+  ];
+
+  const activeLogs: ActivityItem[] =
     activities ||
-    (dispute?.statusHistory && dispute.statusHistory.length > 0
-      ? dispute.statusHistory
-          .map((historyItem: DisputeStatusHistory, index: number) => ({
+    (disputeOrder?.statusHistory && disputeOrder.statusHistory.length > 0
+      ? disputeOrder.statusHistory
+          .map((historyItem, index) => ({
             title: historyItem.title,
-            timestamp: new Date(historyItem.date).toLocaleString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: true,
-            }),
-            isLatest: index === dispute.statusHistory.length - 1,
+            timestamp: formatLogTime(historyItem.date),
+            isLatest: index === disputeOrder.statusHistory.length - 1,
           }))
           .reverse()
-      : []);
+      : defaultLogs);
 
   return (
-    <div className="w-full  p-[20px] gap-[16px] flex flex-col bg-surface-default border border-outline-subtle rounded-[6px] shadow-xs">
+    <div className="w-full p-4 md:p-[20px] gap-3 md:gap-[16px] flex flex-col bg-surface-default border border-outline-default rounded-[6px] shadow-xs">
       <div className="flex items-center justify-between w-full">
         <Typography
           variant="h3"
@@ -58,37 +71,32 @@ export default function DisputeActivityLog({
         </button>
       </div>
 
-      <div className="flex flex-col gap-4 w-full overflow-y-auto">
-        {activeLogs?.map((activity, index) => (
-          <div key={index} className="flex items-start gap-3 w-full">
-            <div className="pt-1.5 flex items-center justify-center flex-shrink-0">
+      <div className="flex flex-col gap-3 w-full">
+        {activeLogs.map((activity, index) => (
+          <div
+            key={index}
+            className="flex items-center justify-between w-full text-xs"
+          >
+            <div className="flex items-center gap-2">
               <span
-                className={`w-2 h-2 rounded-full ${
-                  activity.isLatest
-                    ? "bg-accent-default"
-                    : "bg-content-tertiary"
+                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                  index === 0 ? "bg-accent-default" : "bg-neutral-400"
                 }`}
               />
-            </div>
-
-            <div className="flex flex-col justify-center">
-              <Typography
-                variant="body"
-                className={`text-[13px] leading-tight ${
-                  activity.isLatest
-                    ? "text-page-inverse font-semibold!"
-                    : "text-content-secondary font-medium!"
+              <span
+                className={`text-[13px] leading-none ${
+                  index === 0
+                    ? "text-neutral-900 font-semibold"
+                    : "text-neutral-600 font-medium"
                 }`}
               >
                 {activity.title}
-              </Typography>
-              <Typography
-                variant="caption"
-                className="text-content-tertiary text-[11px] leading-tight pt-0.5 font-mono"
-              >
-                {activity.timestamp}
-              </Typography>
+              </span>
             </div>
+
+            <span className="text-[11px] text-neutral-400 font-jetbrains shrink-0">
+              {activity.timestamp}
+            </span>
           </div>
         ))}
       </div>

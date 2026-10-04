@@ -1,9 +1,18 @@
 import React from "react";
 import Typography from "@/components/atoms/typography/typography";
 import { Icon } from "@iconify/react";
+import type { VerificationItem } from "../profileData";
 
-export default function TrustVerificationCard() {
-  const verifications = [
+interface TrustVerificationCardProps {
+  verifications?: VerificationItem[];
+  verificationLevel?: string;
+}
+
+export default function TrustVerificationCard({
+  verifications: customVerifications,
+  verificationLevel = "Level 1 Verified",
+}: TrustVerificationCardProps) {
+  const verifications = customVerifications || [
     {
       title: "Email Verified",
       description: "Confirmed on account creation",
@@ -42,20 +51,22 @@ export default function TrustVerificationCard() {
   ];
 
   return (
-    <div className="w-full bg-surface-default border border-outline-subtle rounded-xl p-5 sm:p-6 shadow-xs flex flex-col gap-4">
-      <div className="flex items-center justify-between pb-3 border-b border-outline-subtle">
+    <div className="w-full bg-surface-default border border-outline-subtle rounded-xl p-4 sm:p-6 shadow-xs flex flex-col gap-4">
+      <div className="flex items-center justify-between pb-3 border-b border-outline-subtle flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <Icon icon="lucide:shield-check" className="w-4.5 h-4.5 text-success-icon" />
+          <div className="p-1.5 rounded-md bg-success-surface text-success-icon">
+            <Icon icon="lucide:shield-check" className="w-4 h-4" />
+          </div>
           <Typography
             variant="h3"
-            className="text-[16px] font-bold text-content-primary leading-tight"
+            className="text-[15px] sm:text-[16px] font-bold text-content-primary leading-tight"
           >
             Trust & Verification
           </Typography>
         </div>
 
-        <span className="text-[12px] font-semibold text-success-icon bg-success-surface px-2 py-0.5 rounded-full border border-success-outline">
-          Level 1 Verified
+        <span className="text-[11px] sm:text-[12px] font-semibold text-success-icon bg-success-surface px-2.5 py-0.5 rounded-full border border-success-outline">
+          {verificationLevel}
         </span>
       </div>
 

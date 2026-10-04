@@ -1,112 +1,78 @@
 import FilterSection from "./FilterSection";
 import ItemsCardSection from "./ItemsCardSection";
-import { useState, useMemo } from "react";
-import { marketplaceListings } from "@/utils/ItemsSeed";
+import { useState, useMemo, useEffect } from "react";
+import { useMarketplaceListings } from "@/services/itemsServices";
 
 export default function MarketplaceBrowse() {
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [priceRange, setPriceRange] = useState("all");
   const [sortBy, setSortBy] = useState("price-high-low");
 
-  const filteredItems = useMemo(() => {
-    return marketplaceListings
-      .filter((item) => {
-        if (
-          search &&
-          !item.itemName.toLowerCase().includes(search.toLowerCase()) &&
-          !item.category.toLowerCase().includes(search.toLowerCase())
-        ) {
-          return false;
-        }
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-        if (category && category !== "all") {
-          const itemCat = item.category.toLowerCase();
-          const selCat = category.toLowerCase();
-          if (selCat === "electronics") {
-            if (
-              !itemCat.includes("electronic") &&
-              !itemCat.includes("photo") &&
-              !itemCat.includes("camera") &&
-              !itemCat.includes("audio") &&
-              !itemCat.includes("tech") &&
-              !itemCat.includes("headphone")
-            ) {
-              return false;
-            }
-          } else if (selCat === "fashion") {
-            if (
-              !itemCat.includes("fashion") &&
-              !itemCat.includes("footwear") &&
-              !itemCat.includes("accessories") &&
-              !itemCat.includes("bag") &&
-              !itemCat.includes("sneaker") &&
-              !itemCat.includes("watch") &&
-              !itemCat.includes("wallet")
-            ) {
-              return false;
-            }
-          } else if (selCat === "home") {
-            if (
-              !itemCat.includes("home") &&
-              !itemCat.includes("furniture") &&
-              !itemCat.includes("decor") &&
-              !itemCat.includes("kitchen") &&
-              !itemCat.includes("garden") &&
-              !itemCat.includes("office") &&
-              !itemCat.includes("lamp") &&
-              !itemCat.includes("chair")
-            ) {
-              return false;
-            }
-          } else if (selCat === "collectibles") {
-            if (!itemCat.includes("collectible") && !itemCat.includes("art")) {
-              return false;
-            }
-          } else if (selCat === "instruments") {
-            if (
-              !itemCat.includes("instrument") &&
-              !itemCat.includes("music") &&
-              !itemCat.includes("guitar") &&
-              !itemCat.includes("vinyl")
-            ) {
-              return false;
-            }
-          } else if (!itemCat.includes(selCat)) {
-            return false;
-          }
-        }
+  const priceBounds = useMemo(() => {
+    if (priceRange === "0-50") return { minPrice: 0, maxPrice: 5000 };
+    if (priceRange === "50-150") return { minPrice: 5000, maxPrice: 15000 };
+    if (priceRange === "150-300") return { minPrice: 15000, maxPrice: 30000 };
+    if (priceRange === "300-above") return { minPrice: 30000 };
+    return {};
+  }, [priceRange]);
 
-        if (priceRange && priceRange !== "all") {
-          const price = item.itemPrice;
-          if (priceRange === "0-50" && price > 50) return false;
-          if (priceRange === "50-150" && (price < 50 || price > 150)) return false;
-          if (priceRange === "150-300" && (price < 150 || price > 300)) return false;
-          if (priceRange === "300-above" && price < 300) return false;
-        }
+  const queryParams = useMemo(() => {
+    return {
+      search: debouncedSearch.trim() || undefined,
+      category: category !== "all" ? category : undefined,
+      minPrice: priceBounds.minPrice,
+      maxPrice: priceBounds.maxPrice,
+      sortBy,
+    };
+  }, [debouncedSearch, category, priceBounds, sortBy]);
 
-        return true;
-      })
-      .sort((a, b) => {
-        if (sortBy === "price-high-low") {
-          return b.itemPrice - a.itemPrice;
-        }
-        if (sortBy === "price-low-high") {
-          return a.itemPrice - b.itemPrice;
-        }
-        if (sortBy === "popular") {
-          return b.rating - a.rating;
-        }
-        if (sortBy === "newest") {
-          return b.id - a.id;
-        }
-        return 0;
-      });
-  }, [search, category, priceRange, sortBy]);
+  const { data: listings = [], isLoading, error } = useMarketplaceListings(queryParams);
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setDebouncedSearch("");
+    setCategory("all");
+    setPriceRange("all");
+    setSortBy("price-high-low");
+  };
+
+  const renderScreenData = () => {
+    if (isLoading) {
+      return (
+        <div className="py-20 text-center text-content-secondary font-medium">
+          Loading marketplace catalog...
+        </div>
+      );
+    }
+    if (error) {
+      return (
+        <div className="py-20 text-center text-danger-icon font-medium">
+          Failed to load listings. Please check if the backend is running.
+        </div>
+      );
+    }
+    return (
+      <ItemsCardSection
+        search={debouncedSearch}
+        items={listings}
+        onClearFilters={handleClearFilters}
+      />
+    );
+  };
 
   return (
     <div>
       <FilterSection
+        search={search}
         setSearch={setSearch}
         category={category}
         onCategoryChange={setCategory}
@@ -115,7 +81,7 @@ export default function MarketplaceBrowse() {
         sortBy={sortBy}
         onSortByChange={setSortBy}
       />
-      <ItemsCardSection search={search} items={filteredItems} />
+      {renderScreenData()}
     </div>
   );
 }

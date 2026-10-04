@@ -1,30 +1,32 @@
 import { Icon } from "@iconify/react";
 import Typography from "@/components/atoms/typography/typography";
-import { type Dispute } from "@/utils/disputedSeed";
 import { type Order } from "@/utils/orderSeed";
 import { formatActivityDate } from "@/utils/dateUtils";
 
 interface OrderDetailsCardProps {
-  dispute?: Dispute;
-  order?: Order;
+  disputeOrder?: Order;
   onMoreClick?: () => void;
 }
 
 export default function OrderDetailsCard({
-  dispute,
+  disputeOrder,
   onMoreClick,
-  order,
 }: OrderDetailsCardProps) {
-  const itemName = dispute?.orderId
-    ? dispute.orderId
-        .split("-")
-        .slice(2)
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" ")
-    : "Vintage Leica M6";
-  console.log("order is", order);
+  const itemName = disputeOrder?.itemName || "Vintage Leica M6";
+  const amount =
+    disputeOrder?.totalPrice !== undefined
+      ? `$${disputeOrder.totalPrice.toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`
+      : "$1,245.00";
+
+  const carrier = disputeOrder?.shippingMethod || "FedEx";
+  const trackingNumber = disputeOrder?.trackingNumber || "TRK-2847";
+  const orderDateStr = disputeOrder?.orderDate || disputeOrder?.createdAt;
+
   return (
-    <div className="w-full p-[20px] gap-[16px] flex flex-col bg-surface-default border border-page-tertiary rounded-[6px] shadow-xs">
+    <div className="w-full p-4 md:p-[20px] gap-3 md:gap-[16px] flex flex-col bg-surface-default border border-outline-default rounded-[6px] shadow-xs">
       <div className="flex items-center justify-between w-full">
         <Typography
           variant="h3"
@@ -42,14 +44,21 @@ export default function OrderDetailsCard({
       </div>
 
       <div className="flex items-center gap-3 w-full">
-        <div className="w-[60px] h-[60px] rounded-[6px] bg-surface-raised border border-outline-subtle flex items-center justify-center flex-shrink-0">
-          <img
-            src={order?.itemImg}
-            alt=""
-            className="w-full h-full p-[2px] rounded-[6px]"
-          />
+        <div className="w-11 h-11 md:w-[60px] md:h-[60px] rounded-[6px] bg-[#F5F5F4] border border-outline-subtle flex items-center justify-center shrink-0">
+          {disputeOrder?.itemImg && disputeOrder.itemImg.startsWith("http") && !disputeOrder.itemImg.includes("dicebear") ? (
+            <img
+              src={disputeOrder.itemImg}
+              alt={itemName}
+              className="w-full h-full object-cover rounded-[6px]"
+            />
+          ) : (
+            <Icon
+              icon="lucide:camera"
+              className="w-5 h-5 md:w-6 md:h-6 text-content-tertiary"
+            />
+          )}
         </div>
-        <div className="flex flex-col gap-1 justify-center min-w-0">
+        <div className="flex flex-col gap-0.5 md:gap-1 justify-center min-w-0">
           <Typography
             variant="body"
             className="text-page-inverse font-bold truncate leading-tight text-[14px]! font-[600]!"
@@ -57,48 +66,48 @@ export default function OrderDetailsCard({
             {itemName}
           </Typography>
           <Typography
-            variant="currencySmall"
-            className="text-content-secondary font-medium font-jetbrains"
+            variant="bodySmall"
+            className="text-content-secondary font-medium font-jetbrains text-[13px]!"
           >
-            {dispute?.amount}
+            {amount} <span className="text-content-tertiary mx-1 font-sans">•</span> {carrier}
           </Typography>
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 pt-3 border-t border-outline-subtle w-full">
+      <div className="hidden md:flex flex-col gap-2 pt-3 border-t border-outline-subtle w-full">
         <div className="flex justify-between items-center">
-          <Typography variant="body" className="text-content-secondary">
+          <Typography variant="body" className="text-content-secondary text-[13px]">
             Order Date
           </Typography>
           <Typography
             variant="body"
-            className="text-content-primary font-medium"
+            className="text-content-primary font-medium text-[13px]"
           >
-            {formatActivityDate(order?.orderDate)}
+            {orderDateStr ? formatActivityDate(orderDateStr) : "Aug 8, 2026"}
           </Typography>
         </div>
 
         <div className="flex justify-between items-center">
-          <Typography variant="body" className="text-content-secondary">
+          <Typography variant="body" className="text-content-secondary text-[13px]">
             Carrier
           </Typography>
           <Typography
             variant="body"
-            className="text-content-primary font-medium"
+            className="text-content-primary font-medium text-[13px]"
           >
-            {order?.shippingMethod}
+            {carrier}
           </Typography>
         </div>
 
         <div className="flex justify-between items-center">
-          <Typography variant="body" className="text-content-secondary">
+          <Typography variant="body" className="text-content-secondary text-[13px]">
             Tracking
           </Typography>
           <Typography
             variant="body"
-            className="text-content-link font-medium font-jetbrains hover:underline cursor-pointer"
+            className="text-content-link font-medium font-jetbrains hover:underline cursor-pointer text-[13px]"
           >
-            {order?.trackingNumber}
+            {trackingNumber}
           </Typography>
         </div>
       </div>

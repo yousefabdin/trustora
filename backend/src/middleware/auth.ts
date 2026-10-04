@@ -53,7 +53,7 @@ export function requireRole(role: Role) {
       next(unauthenticated());
       return;
     }
-    if (!req.user.roles.includes(role)) {
+    if (!req.user.isAdmin && !req.user.roles.includes(role)) {
       next(forbidden(`This action requires the '${role}' role`));
       return;
     }

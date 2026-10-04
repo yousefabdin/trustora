@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import clsx from "clsx";
+import NotificationDropdown from "@/components/organisms/NavigationsBar/NotificationDropdown";
 
 export default function AdminNavbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -58,9 +59,7 @@ export default function AdminNavbar() {
           </Link>
 
           <div className="flex items-center gap-3">
-            <span className="bg-danger-surface text-danger-icon font-bold text-[11px] tracking-wider uppercase px-2 py-0.5 rounded-[4px]">
-              ADMIN
-            </span>
+            <NotificationDropdown isAdmin />
 
             <button
               type="button"
@@ -76,7 +75,7 @@ export default function AdminNavbar() {
           </div>
         </div>
 
-        <div className="hidden md:flex w-full px-6 lg:px-[90px] h-14 items-center justify-between">
+        <div className="hidden md:flex w-full px-[40px] h-14 items-center justify-between">
           <div className="flex items-center gap-8">
             <Link
               to="/admin/dashboard"
@@ -111,11 +110,7 @@ export default function AdminNavbar() {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="border border-accent-default rounded-full px-3 py-0.5 flex items-center justify-center">
-              <span className="text-accent-default font-bold text-[11px] tracking-wider uppercase whitespace-nowrap">
-                ADMIN VIEW
-              </span>
-            </div>
+            <NotificationDropdown isAdmin />
 
             <Link to="/profile">
               <div className="flex items-center gap-2.5">
@@ -177,22 +172,25 @@ export default function AdminNavbar() {
               </div>
 
               <div className="px-5 py-4 border-b border-outline-subtle bg-page-secondary/60">
-                <div className="flex items-center gap-3">
-                  <Link to="/profile" title="View Profile">
-                    <img
-                      src="/assets/images/img.png"
-                      alt="ops_lead"
-                      className="w-10 h-10 rounded-full border border-outline-strong object-cover"
-                    />
-                  </Link>
-                  <div className="flex flex-col">
-                    <span className="text-[14px] font-semibold text-content-primary">
-                      ops_lead
-                    </span>
-                    <span className="text-[11px] text-content-tertiary font-medium">
-                      Admin Console
-                    </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Link to="/profile" title="View Profile">
+                      <img
+                        src="/assets/images/img.png"
+                        alt="ops_lead"
+                        className="w-10 h-10 rounded-full border border-outline-strong object-cover"
+                      />
+                    </Link>
+                    <div className="flex flex-col">
+                      <span className="text-[14px] font-semibold text-content-primary">
+                        ops_lead
+                      </span>
+                      <span className="text-[11px] text-content-tertiary font-medium">
+                        Admin Console
+                      </span>
+                    </div>
                   </div>
+                  <NotificationDropdown isAdmin />
                 </div>
               </div>
 
@@ -237,14 +235,6 @@ export default function AdminNavbar() {
                     </Link>
                   ))}
                 </nav>
-              </div>
-            </div>
-
-            <div className="p-4 border-t border-outline-default bg-surface-default flex flex-col gap-2">
-              <div className="border border-accent-default rounded-lg py-2 flex items-center justify-center">
-                <span className="text-accent-default font-bold text-[11px] tracking-wider uppercase">
-                  ADMIN VIEW ACTIVE
-                </span>
               </div>
             </div>
           </aside>

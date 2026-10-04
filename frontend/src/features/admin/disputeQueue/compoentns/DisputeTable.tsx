@@ -1,77 +1,22 @@
-import React from "react";
-import { disputeData, type Dispute } from "@/utils/disputedSeed";
+import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { getOrderById } from "@/services/orderService";
 import clsx from "clsx";
+import { getDaysOpen, useDisputeQueue } from "@/services/disputeService";
+import type { Order } from "@/utils/orderSeed";
+import {
+  getPriority,
+  getDisputeStage,
+  isDisputeResolved,
+  formatDisputeReason,
+  getDisputeNumber,
+} from "@/utils/disputeUtils";
+import DisputeEmptyState from "./DisputeEmptyState";
+import { Icon } from "@iconify/react";
 
-const getItemNameFromOrderId = (orderId: string): string => {
-  const parts = orderId.split("-");
-  if (parts.length < 3) return orderId;
-  return parts
-    .slice(2)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
-
-const formatOrderId = (orderId: string): string => {
-  const parts = orderId.split("-");
-  if (parts.length >= 2) {
-    return `#${parts[0].toUpperCase()}-${parts[1]}`;
+const getPriorityBadgeClass = (priority: string, isResolved?: boolean) => {
+  if (isResolved) {
+    return "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-semibold";
   }
-  return `#${orderId.toUpperCase()}`;
-};
-
-const formatDisputeId = (id: string): string => {
-  if (id.startsWith("#")) return id;
-  if (id.startsWith("dsp-00")) {
-    return `#${id.replace("dsp-00", "D-014")}`;
-  }
-  if (id.startsWith("dsp-")) {
-    return `#${id.replace("dsp-", "D-01")}`;
-  }
-  return `#${id.toUpperCase()}`;
-};
-
-const formatParticipantName = (name?: string, fallback = "Unknown"): string => {
-  if (!name) return fallback;
-  if (name.includes("_")) {
-    return name
-      .split("_")
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(" ");
-  }
-  return name;
-};
-
-const getItemTitle = (dispute: Dispute): string => {
-  const order = getOrderById(dispute.orderId);
-  if (order?.itemName) return order.itemName;
-  return getItemNameFromOrderId(dispute.orderId);
-};
-
-const getBuyerDisplay = (dispute: Dispute): string => {
-  const order = getOrderById(dispute.orderId);
-  if (order?.buyerName) {
-    return formatParticipantName(order.buyerName);
-  }
-  return dispute.buyerId.replace("user-", "User ");
-};
-
-const getSellerDisplay = (dispute: Dispute): string => {
-  const order = getOrderById(dispute.orderId);
-  if (order?.sellerName) {
-    return formatParticipantName(order.sellerName);
-  }
-  return dispute.sellerId.replace("seller-", "Seller ");
-};
-
-const formatDaysOpen = (daysopen: string): string => {
-  if (!daysopen) return "Opened recently";
-  if (daysopen.toLowerCase().includes("ago")) return daysopen;
-  return `Opened ${daysopen} ago`;
-};
-
-const getPriorityBadgeClass = (priority: Dispute["priority"]) => {
   switch (priority) {
     case "Critical":
     case "High":
@@ -84,7 +29,10 @@ const getPriorityBadgeClass = (priority: Dispute["priority"]) => {
   }
 };
 
-const getMobilePriorityBadgeClass = (priority: Dispute["priority"]) => {
+const getMobilePriorityBadgeClass = (priority: string, isResolved?: boolean) => {
+  if (isResolved) {
+    return "bg-emerald-50 text-emerald-700 border border-emerald-200";
+  }
   switch (priority) {
     case "Critical":
       return "bg-red-50 text-red-600 border border-red-100";
@@ -99,65 +47,139 @@ const getMobilePriorityBadgeClass = (priority: Dispute["priority"]) => {
 };
 
 interface DisputeTableProps {
-  disputes?: Dispute[];
-  onReview?: (dispute: Dispute) => void;
+  activeFilter?: string;
+  onFilterChange?: (filter: string) => void;
+  disputes?: Order[];
+  onReview?: (dispute: Order) => void;
 }
 
 export const DisputeTable: React.FC<DisputeTableProps> = ({
-  disputes = disputeData,
+  activeFilter = "All",
+  onFilterChange,
+  disputes,
   onReview,
 }) => {
   const navigate = useNavigate();
+  const {
+    data: fetchedOrders,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useDisputeQueue();
+
+  const allOrders = disputes || fetchedOrders || [];
+
+  const filteredOrders = useMemo(() => {
+    if (!activeFilter || activeFilter === "All") {
+      return allOrders;
+    }
+    return allOrders.filter((order) => {
+      const stage = getDisputeStage(order);
+      return stage === activeFilter;
+    });
+  }, [allOrders, activeFilter]);
+
+  if (isLoading) {
+    return (
+      <div className="w-full px-4 md:px-6 lg:px-[90px] py-16 flex flex-col items-center justify-center gap-3">
+        <div className="w-8 h-8 border-2 border-accent-default/20 border-t-accent-default rounded-full animate-spin" />
+        <p className="text-xs md:text-sm text-content-secondary font-medium">
+          Loading dispute queue...
+        </p>
+      </div>
+    );
+  }
+
+  if (filteredOrders.length === 0) {
+    return (
+      <DisputeEmptyState
+        activeFilter={activeFilter}
+        totalCount={allOrders.length}
+        onClearFilter={() => onFilterChange?.("All")}
+        onRefresh={() => refetch()}
+        isRefreshing={isFetching}
+      />
+    );
+  }
 
   return (
     <div className="w-full">
       <div className="md:hidden flex flex-col gap-3 px-4 pb-8 w-full">
-        {disputes.map((dispute, index) => {
-          const formattedId = formatDisputeId(dispute.id);
-          const itemTitle = getItemTitle(dispute);
-          const buyer = getBuyerDisplay(dispute);
-          const seller = getSellerDisplay(dispute);
+
+        {filteredOrders.map((dispute, index) => {
+          const resolved = isDisputeResolved(dispute);
+          const days = getDaysOpen(dispute);
+          const priority = resolved ? "Resolved" : getPriority(days);
+          const disputeNum = getDisputeNumber(dispute.id);
+          const formattedAmount =
+            dispute.amount ||
+            `$${Number(dispute.totalPrice || 0).toLocaleString("en-US", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}`;
+          const reasonLabel = formatDisputeReason(
+            dispute.disputeReason || (dispute as any).reason,
+          );
 
           return (
             <div
               key={`${dispute.id}-${index}`}
-              className="w-full bg-white rounded-[8px] border border-neutral-200/80 p-[12px] shadow-xs flex flex-col gap-[10px] transition-shadow hover:shadow-sm"
+              className="w-full bg-white rounded-[10px] border border-neutral-200/80 p-3.5 shadow-xs flex flex-col gap-2.5 transition-shadow hover:shadow-sm"
             >
               <div className="flex items-center justify-between">
                 <span className="font-jetbrains font-semibold text-neutral-900 text-[12px]">
-                  {formattedId}
+                  {disputeNum}
                 </span>
                 <span
                   className={clsx(
-                    "px-2 text-[10px] font-bold tracking-wider uppercase rounded",
-                    getMobilePriorityBadgeClass(dispute.priority),
+                    "px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase rounded",
+                    getMobilePriorityBadgeClass(priority, resolved),
                   )}
                 >
-                  {dispute.priority}
+                  {priority}
                 </span>
               </div>
+
               <div>
-                <h3 className="font-semibold text-neutral-900 text-[13px]  leading-tight">
-                  {itemTitle}
+                <h3 className="font-semibold text-neutral-900 text-[13px] leading-tight">
+                  {dispute.itemName}
                 </h3>
 
-                <div className="font-jetbrains text-sm flex items-center gap-1.5">
+                <div className="font-jetbrains text-sm flex items-center gap-1.5 mt-1">
                   <span className="font-bold text-[#4F46E5]">
-                    {dispute.amount}
+                    {formattedAmount}
                   </span>
-                  <span className="text-[#6366F1] font-medium">in Escrow</span>
+                  <span className="text-[#6366F1] font-medium text-xs">
+                    {resolved ? "Total Value" : "in Escrow"}
+                  </span>
                 </div>
               </div>
-              <div className="text-xs flex items-center flex-wrap gap-1 border-b border-page-tertiary pb-1">
-                <span className="text-neutral-400">Buyer:</span>
-                <span className="font-semibold text-neutral-800">{buyer}</span>
-                <span className="text-neutral-400 ml-1">vs Seller:</span>
-                <span className="font-semibold text-neutral-800">{seller}</span>
+
+              <div className="text-xs flex items-center flex-wrap gap-1 border-b border-page-tertiary pb-2">
+                <span className="text-neutral-400">Reason:</span>
+                <span className="font-medium text-neutral-800">
+                  {reasonLabel}
+                </span>
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="text-xs flex items-center flex-wrap gap-1">
+                <span className="text-neutral-400">Buyer:</span>
+                <span className="font-semibold text-neutral-800">
+                  {dispute.buyerName || dispute.buyer || "Buyer"}
+                </span>
+                <span className="text-neutral-400 ml-1">vs Seller:</span>
+                <span className="font-semibold text-neutral-800">
+                  {dispute.sellerName || dispute.seller || "Seller"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
                 <span className="text-xs text-neutral-400">
-                  {formatDaysOpen(dispute.daysopen)}
+                  {resolved
+                    ? "Case Resolved"
+                    : days === 0
+                      ? "Opened today (<1d)"
+                      : `${days} ${days === 1 ? "day" : "days"} open`}
                 </span>
                 <button
                   type="button"
@@ -170,7 +192,7 @@ export const DisputeTable: React.FC<DisputeTableProps> = ({
                   }}
                   className="px-3.5 py-1.5 text-xs font-semibold text-white bg-[#4F46E5] hover:bg-[#4338CA] active:bg-[#3730A3] rounded-lg transition-colors shadow-xs cursor-pointer"
                 >
-                  Review Dispute
+                  {resolved ? "View Case" : "Review Dispute"}
                 </button>
               </div>
             </div>
@@ -179,10 +201,11 @@ export const DisputeTable: React.FC<DisputeTableProps> = ({
       </div>
 
       <div className="hidden md:block w-full overflow-x-auto px-6 lg:px-[90px] pb-[64px]">
+
         <table className="w-full text-left border-collapse bg-[var(--surface-default)] rounded-xl overflow-hidden border border-[var(--outline-default)] shadow-xs">
           <thead>
             <tr className="w-full border-b border-[var(--outline-default)] bg-[var(--surface-raised)] text-xs font-semibold text-[var(--content-tertiary)] uppercase tracking-wider">
-              <th className="py-3.5 px-4">ID</th>
+              <th className="py-3.5 px-4">Case ID</th>
               <th className="py-3.5 px-4">Order</th>
               <th className="py-3.5 px-4">Item</th>
               <th className="py-3.5 px-4">Buyer</th>
@@ -190,14 +213,25 @@ export const DisputeTable: React.FC<DisputeTableProps> = ({
               <th className="py-3.5 px-4">Amount</th>
               <th className="py-3.5 px-4">Reason</th>
               <th className="py-3.5 px-4">Days Open</th>
-              <th className="py-3.5 px-4">Priority</th>
+              <th className="py-3.5 px-4">Status / Priority</th>
               <th className="py-3.5 px-4 text-right">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--outline-subtle)] text-sm font-sans">
-            {disputes.map((dispute, index) => {
-              const formattedId = formatDisputeId(dispute.id);
-              const isLongOpen = parseInt(dispute.daysopen) >= 3;
+            {filteredOrders.map((dispute, index) => {
+              const resolved = isDisputeResolved(dispute);
+              const days = getDaysOpen(dispute);
+              const priority = resolved ? "Resolved" : getPriority(days);
+              const disputeNum = getDisputeNumber(dispute.id);
+              const formattedAmount =
+                dispute.amount ||
+                `$${Number(dispute.totalPrice || 0).toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}`;
+              const reasonLabel = formatDisputeReason(
+                dispute.disputeReason || (dispute as any).reason,
+              );
 
               return (
                 <tr
@@ -205,51 +239,63 @@ export const DisputeTable: React.FC<DisputeTableProps> = ({
                   className="hover:bg-[var(--surface-raised)] transition-colors"
                 >
                   <td className="py-4 px-4 font-mono font-bold text-[var(--content-primary)] whitespace-nowrap">
-                    {formattedId}
+                    {disputeNum}
                   </td>
 
                   <td className="py-4 px-4 font-mono text-[var(--content-tertiary)] whitespace-nowrap">
-                    {formatOrderId(dispute.orderId)}
+                    {dispute.orderNumber || `#${dispute.id.slice(0, 8)}`}
                   </td>
 
                   <td className="py-4 px-4 font-bold text-[var(--content-primary)] whitespace-nowrap max-w-[200px] truncate">
-                    {getItemTitle(dispute)}
+                    {dispute.itemName}
                   </td>
 
                   <td className="py-4 px-4 text-[var(--content-secondary)] font-mono whitespace-nowrap">
-                    @{dispute.buyerId.replace("user-", "buyer")}
+                    @{dispute.buyerName || dispute.buyer}
                   </td>
 
                   <td className="py-4 px-4 text-[var(--content-secondary)] font-mono whitespace-nowrap">
-                    @{dispute.sellerId.replace("seller-", "seller")}
+                    @{dispute.sellerName || dispute.seller}
                   </td>
 
                   <td className="py-4 px-4 font-mono font-bold text-[var(--content-primary)] whitespace-nowrap">
-                    {dispute.amount}
+                    {formattedAmount}
                   </td>
-                  <td className="py-4 px-4 text-[var(--content-secondary)] whitespace-nowrap max-w-[150px] truncate">
-                    {dispute.reason}
+
+                  <td className="py-4 px-4 text-[var(--content-secondary)] whitespace-nowrap max-w-[170px] truncate" title={reasonLabel}>
+                    {reasonLabel}
                   </td>
 
                   <td
-                    className={`py-4 px-4 font-mono whitespace-nowrap ${
-                      isLongOpen
-                        ? "text-[var(--danger-icon)] font-bold"
-                        : "text-[var(--content-secondary)]"
-                    }`}
+                    className={clsx(
+                      "py-4 px-4 font-mono whitespace-nowrap text-xs",
+                      resolved
+                        ? "text-emerald-600 font-medium"
+                        : days > 2
+                          ? "text-[var(--danger-icon)] font-bold"
+                          : "text-[var(--content-secondary)]",
+                    )}
                   >
-                    {dispute.daysopen
-                      .replace(" days", "d")
-                      .replace(" day", "d")}
+                    {resolved ? (
+                      <span className="inline-flex items-center gap-1 text-emerald-600">
+                        <Icon icon="lucide:check-circle" className="w-3.5 h-3.5" />
+                        Resolved
+                      </span>
+                    ) : days === 0 ? (
+                      "< 1 day"
+                    ) : (
+                      `${days} ${days === 1 ? "day" : "days"}`
+                    )}
                   </td>
 
                   <td className="py-4 px-4 whitespace-nowrap">
                     <span
                       className={`inline-block px-2.5 py-0.5 text-xs rounded-md ${getPriorityBadgeClass(
-                        dispute.priority,
+                        priority,
+                        resolved,
                       )}`}
                     >
-                      {dispute.priority}
+                      {priority}
                     </span>
                   </td>
 
@@ -263,9 +309,9 @@ export const DisputeTable: React.FC<DisputeTableProps> = ({
                           navigate(`/admin/disputes/${dispute.id}`);
                         }
                       }}
-                      className="px-3.5 py-1 text-xs font-bold text-[var(--content-link)] bg-[var(--surface-default)] border border-[var(--outline-default)] rounded-lg hover:bg-[var(--accent-subtle)] hover:border-[var(--outline-focus)] transition-all shadow-xs cursor-pointer"
+                      className="px-3.5 py-1.5 text-xs font-semibold text-[var(--content-link)] bg-[var(--surface-default)] border border-[var(--outline-default)] rounded-lg hover:bg-[var(--accent-subtle)] hover:border-[var(--outline-focus)] transition-all shadow-xs cursor-pointer"
                     >
-                      Review
+                      {resolved ? "View Case" : "Review"}
                     </button>
                   </td>
                 </tr>

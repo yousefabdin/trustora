@@ -1,8 +1,9 @@
 import Typography from "@/components/atoms/typography/typography";
 import HeroSectionListing from "./HeroSectionListing";
 import { Icon } from "@iconify/react";
-
+import { useNavigate } from "react-router";
 export default function HeroSection() {
+  const navigate = useNavigate();
   return (
     <>
       <HeroSectionListing
@@ -27,12 +28,16 @@ export default function HeroSection() {
           {
             label: "Start Buying",
             variant: "primary",
-            onClick: () => {},
+            onClick: () => {
+              navigate("/browse");
+            },
           },
           {
             label: "Start Selling",
             variant: "secondary",
-            onClick: () => {},
+            onClick: () => {
+              navigate("/seller/dashboard");
+            },
           },
         ]}
         visual={
