@@ -27,13 +27,13 @@ export default function CardSummarySection({
   const price =
     typeof item?.itemPrice === "number"
       ? item.itemPrice
-      : Number(item?.itemPrice) || 25.88;
+      : Number(item?.itemPrice) || 0;
 
   const total = price + escrowFees;
-  const itemName = item?.itemName || "Vintage Leica M6";
+  const itemName = item?.itemName || "Marketplace Item";
   const itemImg =
     item?.img || item?.images?.[0] || "/assets/images/itemImg.png";
-  const sellerHandle = item?.sellerName || "timekeeper_luxury";
+  const sellerHandle = item?.sellerName || "seller";
 
   if (mobileOnly) {
     return (

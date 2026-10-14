@@ -31,6 +31,23 @@ ordersRouter.post(
       throw forbidden('You cannot purchase your own listing');
     }
 
+    // Check if buyer has an accepted offer on this listing
+    let finalAmountCents = listing.priceCents;
+    try {
+      const { ensureOffersTable } = await import('./offers');
+      await ensureOffersTable();
+      const acceptedOffers = await prisma.$queryRaw<Array<{ id: string; amount_cents: number }>>`
+        SELECT id, amount_cents FROM offers 
+        WHERE listing_id = ${listing.id} AND buyer_id = ${req.user!.id} AND status = 'accepted'
+        ORDER BY updated_at DESC LIMIT 1
+      `;
+      if (acceptedOffers.length > 0) {
+        finalAmountCents = acceptedOffers[0].amount_cents;
+      }
+    } catch (e) {
+      console.error('Error checking accepted offer for order creation:', e);
+    }
+
     const provider = getPaymentProvider();
 
     const orderId = await prisma.$transaction(async (tx) => {
@@ -39,7 +56,7 @@ ordersRouter.post(
           listingId: listing.id,
           buyerId: req.user!.id,
           sellerId: listing.sellerId,
-          amountCents: listing.priceCents,
+          amountCents: finalAmountCents,
           status: 'pending_payment',
         },
       });

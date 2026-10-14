@@ -12,6 +12,7 @@ interface ListingLedgerProps {
   user?: User | null;
   items?: MarketplaceListing[];
   isLoading?: boolean;
+  onOpenOffers?: (item: MarketplaceListing) => void;
 }
 
 export default function ListingLedger({
@@ -21,6 +22,7 @@ export default function ListingLedger({
   limit = 8,
   items = [],
   isLoading = false,
+  onOpenOffers,
 }: ListingLedgerProps) {
   const onEdit = (listing: MarketplaceListing) => {
     setSelectedListing({
@@ -69,8 +71,10 @@ export default function ListingLedger({
             image={item.img}
             price={item.itemPrice}
             views={12}
+            offersCount={item.offersCount ?? 0}
             status={item.status || "active"}
             onEdit={() => onEdit(item)}
+            onViewOffers={() => onOpenOffers?.(item)}
           ></SellerItemCard>
         );
       })}

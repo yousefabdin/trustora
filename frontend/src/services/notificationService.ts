@@ -11,7 +11,9 @@ export interface AppNotification {
     | "funds_released"
     | "dispute_opened"
     | "order_held"
-    | "offer_received";
+    | "offer_received"
+    | "offer_accepted"
+    | "offer_declined";
   title: string;
   message: string;
   orderId?: string;

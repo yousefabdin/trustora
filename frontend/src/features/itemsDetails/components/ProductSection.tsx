@@ -9,12 +9,14 @@ import { Icon } from "@iconify/react";
 import clsx from "clsx";
 import { useAuth } from "@/context/AuthContext";
 import { showToast } from "@/components/molecules/toast/Toast";
+import { createOffer } from "@/services/offerService";
 
 export default function ProductSection({ item }: { item?: any }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
   const [mobilePhotoIndex, setMobilePhotoIndex] = useState(0);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   const displayItem = item || {
     id: 101,
@@ -111,6 +113,56 @@ export default function ProductSection({ item }: { item?: any }) {
       return;
     }
     setIsOpen(true);
+  };
+
+  const handleSubmitOffer = async ({
+    offerAmount,
+    message,
+  }: {
+    offerAmount: string;
+    message: string;
+  }) => {
+    if (!isAuthenticated) {
+      showToast({
+        variant: "error",
+        message: "Please log in to make an offer.",
+      });
+      navigate("/login");
+      return;
+    }
+
+    const cleanAmount = parseFloat(offerAmount.replace(/[^\d.]/g, ""));
+    if (isNaN(cleanAmount) || cleanAmount <= 0) {
+      showToast({
+        variant: "error",
+        message: "Please enter a valid offer amount.",
+      });
+      return;
+    }
+
+    try {
+      setIsSubmittingOffer(true);
+      await createOffer({
+        listingId: String(displayItem.id),
+        amountCents: Math.round(cleanAmount * 100),
+        message,
+      });
+
+      showToast({
+        variant: "success",
+        message: `Offer of $${cleanAmount.toFixed(2)} submitted to the seller!`,
+      });
+      setIsOpen(false);
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message || err.message || "Failed to submit offer.";
+      showToast({
+        variant: "error",
+        message: msg,
+      });
+    } finally {
+      setIsSubmittingOffer(false);
+    }
   };
 
   const sellerHandle = displayItem.sellerName
@@ -507,6 +559,10 @@ export default function ProductSection({ item }: { item?: any }) {
           }
           price={displayItem.itemPrice}
           heading={displayItem.itemName}
+          itemName={displayItem.itemName}
+          listPrice={priceFormatted}
+          onSubmitOffer={handleSubmitOffer}
+          isSubmitting={isSubmittingOffer}
           onCloseModal={onClose}
         />
       </Modal>

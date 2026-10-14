@@ -11,11 +11,15 @@ export interface ListingResponse {
   status: string;
   imageUrl?: string;
   images?: string[];
+  offersCount?: number;
   createdAt: string;
   updatedAt: string;
 }
 
-export function toListingResponse(listing: Listing & { seller: Pick<User, 'email'> }): ListingResponse {
+export function toListingResponse(
+  listing: Listing & { seller: Pick<User, 'email'> },
+  offersCount?: number,
+): ListingResponse {
   let images: string[] | undefined = undefined;
   let imageUrl: string | undefined = undefined;
   let cleanDescription = listing.description;
@@ -68,6 +72,7 @@ export function toListingResponse(listing: Listing & { seller: Pick<User, 'email
     status: listing.status,
     imageUrl,
     images,
+    offersCount,
     createdAt: listing.createdAt.toISOString(),
     updatedAt: listing.updatedAt.toISOString(),
   };

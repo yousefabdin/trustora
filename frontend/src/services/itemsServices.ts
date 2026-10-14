@@ -18,6 +18,7 @@ export interface BackendListing {
   updatedAt: string;
   imageUrl?: string | null;
   images?: string[];
+  offersCount?: number;
 }
 export interface PaginatedItems {
   data: MarketplaceListing[];
@@ -42,6 +43,7 @@ export interface MarketplaceListing {
   firstDescription: string;
   secondDescription: string;
   status: string;
+  offersCount?: number;
 }
 const CATEGORY_IMAGES: Record<string, string[]> = {
   apparel: [
@@ -84,6 +86,7 @@ export const adaptListing = (item: BackendListing): MarketplaceListing => {
     rating: 4.9,
     category: item.category,
     status: item.status || "active",
+    offersCount: item.offersCount ?? 0,
     img: primaryImg,
     images: imagePool.length > 0 ? imagePool : [primaryImg],
     firstDescription: item.description,

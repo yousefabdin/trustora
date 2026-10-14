@@ -80,12 +80,35 @@ listingsRouter.get(
   '/mine',
   requireAuth,
   asyncHandler(async (req, res) => {
+    try {
+      const { ensureOffersTable } = await import('./offers');
+      await ensureOffersTable();
+    } catch {
+      // ignore
+    }
+
     const listings = await prisma.listing.findMany({
       where: { sellerId: req.user!.id, status: { not: 'inactive' } },
       include: SELLER_INCLUDE,
       orderBy: { createdAt: 'desc' },
     });
-    res.status(200).json(listings.map(toListingResponse));
+
+    let countMap = new Map<string, number>();
+    try {
+      const offerCounts = await prisma.$queryRaw<Array<{ listing_id: string; count: bigint }>>`
+        SELECT listing_id, COUNT(*) as count 
+        FROM offers 
+        WHERE seller_id = ${req.user!.id}
+        GROUP BY listing_id
+      `;
+      for (const r of offerCounts) {
+        countMap.set(r.listing_id, Number(r.count));
+      }
+    } catch {
+      countMap = new Map();
+    }
+
+    res.status(200).json(listings.map((l) => toListingResponse(l, countMap.get(l.id) || 0)));
   }),
 );
 
@@ -94,7 +117,18 @@ listingsRouter.get(
   asyncHandler(async (req, res) => {
     const listing = await prisma.listing.findUnique({ where: { id: req.params.id }, include: SELLER_INCLUDE });
     if (!listing) throw notFound('Listing');
-    res.status(200).json(toListingResponse(listing));
+
+    let count = 0;
+    try {
+      const offerCounts = await prisma.$queryRaw<Array<{ count: bigint }>>`
+        SELECT COUNT(*) as count FROM offers WHERE listing_id = ${listing.id}
+      `;
+      count = offerCounts[0] ? Number(offerCounts[0].count) : 0;
+    } catch {
+      count = 0;
+    }
+
+    res.status(200).json(toListingResponse(listing, count));
   }),
 );
 

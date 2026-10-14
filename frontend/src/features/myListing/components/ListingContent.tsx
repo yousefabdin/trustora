@@ -3,7 +3,9 @@ import ListingHeader from "./Listingheader";
 import ListingFooter from "./ListingFooter";
 import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import ListingForm from "./ListingForm";
+import ListingOffersModal from "./ListingOffersModal";
 import { getSellerListings } from "@/services/ListingService";
 import type { MarketplaceListing } from "@/services/itemsServices";
 
@@ -15,6 +17,7 @@ export default function ListingContent({
   onFormOpenChange,
 }: ListingContentProps = {}) {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<MarketplaceListing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
@@ -27,6 +30,8 @@ export default function ListingContent({
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedListing, setSelectedListing] = useState<any>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedOffersListing, setSelectedOffersListing] = useState<MarketplaceListing | null>(null);
+  const [isOffersOpen, setIsOffersOpen] = useState(false);
 
   const fetchItems = useCallback(async () => {
     if (!user?.id) return;
@@ -46,8 +51,19 @@ export default function ListingContent({
   }, [fetchItems, refreshKey]);
 
   useEffect(() => {
-    onFormOpenChange?.(modal || isEditOpen);
-  }, [modal, isEditOpen, onFormOpenChange]);
+    const listingIdParam = searchParams.get("listingId");
+    if (listingIdParam && items.length > 0) {
+      const match = items.find((i) => String(i.id) === listingIdParam);
+      if (match) {
+        setSelectedOffersListing(match);
+        setIsOffersOpen(true);
+      }
+    }
+  }, [items, searchParams]);
+
+  useEffect(() => {
+    onFormOpenChange?.(modal || isEditOpen || isOffersOpen);
+  }, [modal, isEditOpen, isOffersOpen, onFormOpenChange]);
 
   const visibleItems = items.filter(
     (item) => (item.status || "").toLowerCase() !== "inactive",
@@ -106,6 +122,10 @@ export default function ListingContent({
             isLoading={isLoading}
             setSelectedListing={setSelectedListing}
             user={user}
+            onOpenOffers={(item) => {
+              setSelectedOffersListing(item);
+              setIsOffersOpen(true);
+            }}
           />
           {filteredItems.length > 0 && (
             <ListingFooter
@@ -116,6 +136,21 @@ export default function ListingContent({
               limit={Math.min(limit, filteredItems.length)}
             />
           )}
+          <ListingOffersModal
+            isOpen={isOffersOpen}
+            onClose={() => {
+              setIsOffersOpen(false);
+              setSelectedOffersListing(null);
+              // Clean up search param if present
+              if (searchParams.has("listingId")) {
+                const next = new URLSearchParams(searchParams);
+                next.delete("listingId");
+                setSearchParams(next, { replace: true });
+              }
+            }}
+            listing={selectedOffersListing}
+            onStatusChange={handleRefresh}
+          />
         </>
       )}
     </div>

@@ -13,7 +13,10 @@ export interface ServerNotification {
     | 'item_shipped'
     | 'order_shipped'
     | 'funds_released'
-    | 'dispute_opened';
+    | 'dispute_opened'
+    | 'offer_received'
+    | 'offer_accepted'
+    | 'offer_declined';
   title: string;
   message: string;
   orderId?: string;
@@ -363,6 +366,101 @@ notificationsRouter.get(
           });
         }
       }
+    }
+
+    // Query offer notifications (Seller received offers + Buyer resolved offers)
+    try {
+      const { ensureOffersTable } = await import('./offers');
+      await ensureOffersTable();
+
+      // 1. Pending offers received by seller
+      const sellerOffers = await prisma.$queryRaw<
+        Array<{
+          id: string;
+          listing_id: string;
+          amount_cents: number;
+          message: string | null;
+          status: string;
+          created_at: Date;
+          listing_title: string;
+          buyer_email: string;
+        }>
+      >`
+        SELECT o.id, o.listing_id, o.amount_cents, o.message, o.status, o.created_at, l.title as listing_title, u.email as buyer_email
+        FROM offers o
+        JOIN listings l ON o.listing_id = l.id
+        JOIN users u ON o.buyer_id = u.id
+        WHERE o.seller_id = ${userId} AND o.status = 'pending'
+        ORDER BY o.created_at DESC
+      `;
+
+      for (const off of sellerOffers) {
+        const id = `seller_offer_${off.id}`;
+        const buyerName = off.buyer_email ? off.buyer_email.split('@')[0] : 'A buyer';
+        const formattedAmount = `$${(off.amount_cents / 100).toFixed(2)}`;
+        items.push({
+          id,
+          type: 'offer_received',
+          title: '🏷️ New Offer Received',
+          message: `@${buyerName} offered ${formattedAmount} on "${off.listing_title}". Review and approve or decline.`,
+          listingId: off.listing_id,
+          createdAt: off.created_at.toISOString(),
+          isRead: readSet.has(id),
+          role: 'seller',
+          actionUrl: `/seller/dashboard?listingId=${off.listing_id}`,
+        });
+      }
+
+      // 2. Resolved offers for buyers (accepted or declined)
+      const buyerOffers = await prisma.$queryRaw<
+        Array<{
+          id: string;
+          listing_id: string;
+          amount_cents: number;
+          status: string;
+          updated_at: Date;
+          listing_title: string;
+        }>
+      >`
+        SELECT o.id, o.listing_id, o.amount_cents, o.status, o.updated_at, l.title as listing_title
+        FROM offers o
+        JOIN listings l ON o.listing_id = l.id
+        WHERE o.buyer_id = ${userId} AND o.status IN ('accepted', 'declined')
+        ORDER BY o.updated_at DESC
+      `;
+
+      for (const off of buyerOffers) {
+        const formattedAmount = `$${(off.amount_cents / 100).toFixed(2)}`;
+        if (off.status === 'accepted') {
+          const id = `buyer_offer_accepted_${off.id}`;
+          items.push({
+            id,
+            type: 'offer_accepted',
+            title: '🎉 Offer Accepted!',
+            message: `The seller accepted your offer of ${formattedAmount} for "${off.listing_title}". You can now proceed to checkout!`,
+            listingId: off.listing_id,
+            createdAt: off.updated_at.toISOString(),
+            isRead: readSet.has(id),
+            role: 'buyer',
+            actionUrl: `/checkout/${off.listing_id}?offerPrice=${off.amount_cents / 100}`,
+          });
+        } else if (off.status === 'declined') {
+          const id = `buyer_offer_declined_${off.id}`;
+          items.push({
+            id,
+            type: 'offer_declined',
+            title: '❌ Offer Declined',
+            message: `The seller declined your offer of ${formattedAmount} for "${off.listing_title}".`,
+            listingId: off.listing_id,
+            createdAt: off.updated_at.toISOString(),
+            isRead: readSet.has(id),
+            role: 'buyer',
+            actionUrl: `/items/${off.listing_id}`,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching offer notifications:', err);
     }
 
     items.sort(

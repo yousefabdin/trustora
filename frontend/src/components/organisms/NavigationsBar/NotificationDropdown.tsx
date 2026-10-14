@@ -123,6 +123,21 @@ export default function NotificationDropdown({
           icon: "lucide:alert-triangle",
           bg: "bg-amber-50 text-amber-600 border border-amber-200",
         };
+      case "offer_received":
+        return {
+          icon: "lucide:tag",
+          bg: "bg-indigo-50 text-indigo-700 border border-indigo-200",
+        };
+      case "offer_accepted":
+        return {
+          icon: "lucide:check-circle-2",
+          bg: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+        };
+      case "offer_declined":
+        return {
+          icon: "lucide:x-circle",
+          bg: "bg-rose-50 text-rose-700 border border-rose-200",
+        };
       default:
         return {
           icon: "lucide:bell",

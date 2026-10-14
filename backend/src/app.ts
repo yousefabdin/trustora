@@ -11,6 +11,7 @@ import { disputesRouter } from './routes/disputes';
 import { listingsRouter } from './routes/listings';
 import { meRouter } from './routes/me';
 import { notificationsRouter } from './routes/notifications';
+import { offersRouter } from './routes/offers';
 import { ordersRouter } from './routes/orders';
 
 export function createApp(): Express {
@@ -36,6 +37,7 @@ export function createApp(): Express {
   app.use(meRouter);
   app.use('/listings', listingsRouter);
   app.use('/orders', ordersRouter);
+  app.use('/offers', offersRouter);
   app.use('/notifications', notificationsRouter);
   app.use('/disputes', disputesRouter);
   app.use('/admin', adminRouter);

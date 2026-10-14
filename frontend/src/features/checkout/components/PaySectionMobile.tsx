@@ -16,7 +16,7 @@ export default function PaySectionMobile({
   const price =
     typeof item?.itemPrice === "number"
       ? item.itemPrice
-      : Number(item?.itemPrice) || 25.88;
+      : Number(item?.itemPrice) || 0;
   const total = price + escrowFees;
 
   return (

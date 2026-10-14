@@ -1,24 +1,24 @@
 import Button from "@/components/atoms/Button/Button";
 import Typography from "@/components/atoms/typography/typography";
 import { Icon } from "@iconify/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import clsx from "clsx";
 import TextFieldInput from "../inputs/TextField";
 import TextArea from "../inputs/TextArea";
 
 interface CardProps {
   variant:
-  | "feedbackCard"
-  | "featureCard"
-  | "buyerCard"
-  | "sellerCard"
-  | "itemDetailcard"
-  | "sellerDetailsCard"
-  | "makeOfferCard"
-  | "orderSummaryCard";
+    | "feedbackCard"
+    | "featureCard"
+    | "buyerCard"
+    | "sellerCard"
+    | "itemDetailcard"
+    | "sellerDetailsCard"
+    | "makeOfferCard"
+    | "orderSummaryCard";
   icon?: string;
-  className?: React.ReactNode;
-  children: React.ReactNode;
+  className?: string;
+  children?: React.ReactNode;
   heading?: string;
   username?: string;
   userRole?: string;
@@ -35,14 +35,15 @@ interface CardProps {
   listPrice?: number | string;
   onCloseModal?: () => void;
   onSubmitOffer?: (data: { offerAmount: string; message: string }) => void;
+  isSubmitting?: boolean;
   itemImg?: string;
   sellerHandle?: string;
   subtotal?: number;
   escrowFee?: number;
   shippingFee?: number | string;
   onPay?: () => void;
-  type: string;
-  formType: string;
+  type?: string;
+  formType?: string;
 }
 const buyerBenefits = [
   "No hidden buyer fees",
@@ -76,6 +77,7 @@ export default function Cards({
   listPrice = "1,245.00",
   onCloseModal,
   onSubmitOffer,
+  isSubmitting = false,
   itemImg = "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=600&q=80",
   sellerHandle = "@timekeeper_luxury",
 
@@ -85,10 +87,22 @@ export default function Cards({
   type = "submit",
   formType = "checkout-form",
 }: CardProps) {
-  const [offerAmount, setOfferAmount] = useState("1,150.00");
+  const initialOffer =
+    typeof price === "number" && price > 0
+      ? (price * 0.9).toFixed(2)
+      : typeof listPrice === "string"
+        ? listPrice.replace(/[^\d.]/g, "")
+        : "1,150.00";
+  const [offerAmount, setOfferAmount] = useState(initialOffer);
   const [offerMessage, setOfferMessage] = useState(
     "Hi, I can complete payment immediately. Looking forward to hearing from you.",
   );
+
+  useEffect(() => {
+    if (typeof price === "number" && price > 0) {
+      setOfferAmount((price * 0.9).toFixed(2));
+    }
+  }, [price]);
 
   const handleOfferSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,8 +113,9 @@ export default function Cards({
   const cardVariant = {
     orderSummaryCard: (
       <div
-        className={`w-full min-h-[581px] p-[20px] sm:p-[24px] rounded-[6px] border border-[#EBEBE9] bg-[#F5F5F4] flex flex-col gap-[24px] overflow-hidden ${className ?? ""
-          }`}
+        className={`w-full min-h-[581px] p-[20px] sm:p-[24px] rounded-[6px] border border-[#EBEBE9] bg-[#F5F5F4] flex flex-col gap-[24px] overflow-hidden ${
+          className ?? ""
+        }`}
       >
         <Typography
           variant="h2"
@@ -223,8 +238,9 @@ export default function Cards({
         style={{
           boxShadow: "0px 12px 32px 0px #00000010",
         }}
-        className={`p-5 sm:p-[32px] w-full max-w-[92vw] sm:max-w-[480px] rounded-[6px] border border-outline-default bg-surface-default flex flex-col justify-between gap-[24px] ${className ?? ""
-          }`}
+        className={`p-5 sm:p-[32px] w-full max-w-[92vw] sm:max-w-[480px] rounded-[6px] border border-outline-default bg-surface-default flex flex-col justify-between gap-[24px] ${
+          className ?? ""
+        }`}
       >
         <div className="flex items-start justify-between">
           <div className="flex flex-col gap-1">
@@ -255,7 +271,13 @@ export default function Cards({
               label="Your Offer Amount"
               type="text"
               placeholder="1,150.00"
-              value={offerAmount ? (offerAmount.startsWith("$") ? offerAmount : `$ ${offerAmount}`) : ""}
+              value={
+                offerAmount
+                  ? offerAmount.startsWith("$")
+                    ? offerAmount
+                    : `$ ${offerAmount}`
+                  : ""
+              }
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 const cleaned = e.target.value.replace(/^\$\s*/, "");
                 setOfferAmount(cleaned);
@@ -272,20 +294,21 @@ export default function Cards({
             <label className="text-sm font-semibold text-content-primary">
               Add a message to the seller (optional)
             </label>
-            <TextArea
+            <textarea
               rows={3}
               value={offerMessage}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                 setOfferMessage(e.target.value)
               }
-              className="text-sm py-2.5 px-4 rounded-[6px] border border-outline-subtle focus:outline-none focus:ring-1 focus:ring-accent-default resize-none"
+              placeholder="Hi, I would like to make an offer on this item..."
+              className="text-sm py-2.5 px-4 rounded-[6px] border border-outline-subtle focus:outline-none focus:ring-1 focus:ring-accent-default resize-none bg-surface-default text-content-primary"
             />
           </div>
 
-          <div className="flex items-center gap-3 p-2 bg-[#F5F5F4] rounded-[6px] max-w-[480px]">
+          <div className="flex items-center gap-3 p-2.5 bg-page-secondary/80 rounded-[8px] max-w-[480px] border border-outline-subtle">
             <Icon
               icon="heroicons:shield-check-20-solid"
-              className="w-5 h-5 text-content-secondary flex-shrink-0 mt-0.5"
+              className="w-5 h-5 text-accent-default flex-shrink-0 mt-0.5"
             />
             <Typography
               variant="label"
@@ -301,7 +324,8 @@ export default function Cards({
               type="button"
               variant="ghost"
               onClick={onCloseModal}
-              className="w-1/2 py-3 rounded-[6px] font-semibold text-sm border border-outline-subtle text-content-primary hover:bg-neutral-50"
+              disabled={isSubmitting}
+              className="w-1/2 py-3 rounded-[6px] font-semibold text-sm border border-outline-subtle text-content-primary hover:bg-neutral-50 cursor-pointer"
             >
               Cancel
             </Button>
@@ -309,7 +333,9 @@ export default function Cards({
             <Button
               type="submit"
               variant="primary"
-              className="w-1/2 py-3 rounded-[6px] font-semibold text-sm bg-[#4F46E5] hover:bg-[#4338CA] text-white"
+              loading={isSubmitting}
+              disabled={isSubmitting}
+              className="w-1/2 py-3 rounded-[6px] font-semibold text-sm bg-accent-default hover:bg-accent-hover text-white shadow-xs cursor-pointer"
             >
               Submit Offer
             </Button>
@@ -320,8 +346,9 @@ export default function Cards({
     itemDetailcard: (
       <>
         <div
-          className={`w-full lg:max-w-[480px] h-full bg-page-primary p-6 md:p-8 border border-outline-subtle rounded-[16px] flex flex-col gap-5 ${className ?? ""
-            }`}
+          className={`w-full lg:max-w-[480px] h-full bg-page-primary p-6 md:p-8 border border-outline-subtle rounded-[16px] flex flex-col gap-5 ${
+            className ?? ""
+          }`}
         >
           <div className="flex flex-col gap-2">
             <span className="self-start px-3 py-1 bg-[#F4F4F5] text-content-secondary text-[12px] font-semibold rounded-md">
@@ -395,7 +422,9 @@ export default function Cards({
                 icon="heroicons:information-circle-20-solid"
                 className="w-4 h-4 flex-shrink-0 text-amber-600"
               />
-              <span>This is your listing. You cannot purchase items you have listed.</span>
+              <span>
+                This is your listing. You cannot purchase items you have listed.
+              </span>
             </div>
           )}
 
@@ -405,7 +434,9 @@ export default function Cards({
                 icon="heroicons:shopping-bag-20-solid"
                 className="w-4 h-4 flex-shrink-0 text-neutral-500"
               />
-              <span>This item has been purchased and is no longer available.</span>
+              <span>
+                This item has been purchased and is no longer available.
+              </span>
             </div>
           )}
 
@@ -416,16 +447,16 @@ export default function Cards({
               onClick={onBuyNow}
               className={clsx(
                 "w-full py-3 rounded-lg font-semibold text-[15px] transition-all",
-                (isOwnListing || isSold)
+                isOwnListing || isSold
                   ? "bg-neutral-200! text-neutral-400! border border-neutral-300! cursor-not-allowed hover:bg-neutral-200!"
-                  : "bg-[#4F46E5] hover:bg-[#4338CA] text-white"
+                  : "bg-[#4F46E5] hover:bg-[#4338CA] text-white",
               )}
             >
               {isOwnListing
                 ? "Your Listing (Cannot Purchase)"
                 : isSold
-                ? "Item Sold"
-                : "Buy Now"}
+                  ? "Item Sold"
+                  : "Buy Now"}
             </Button>
             <Button
               variant="ghost"
@@ -433,9 +464,9 @@ export default function Cards({
               onClick={onMakeOffer}
               className={clsx(
                 "w-full py-3 rounded-lg font-semibold text-sm border",
-                (isOwnListing || isSold)
+                isOwnListing || isSold
                   ? "border-neutral-200! text-neutral-400! cursor-not-allowed hover:bg-transparent!"
-                  : "border-[#4F46E5] text-[#4F46E5] hover:bg-indigo-50/50"
+                  : "border-[#4F46E5] text-[#4F46E5] hover:bg-indigo-50/50",
               )}
             >
               Make Offer
@@ -668,8 +699,9 @@ export default function Cards({
     sellerDetailsCard: (
       <>
         <div
-          className={`w-full bg-page-primary p-6 md:py-[20px] px-[20px] border border-outline-subtle rounded-[16px] flex flex-col gap-5 ${className ?? ""
-            }`}
+          className={`w-full bg-page-primary p-6 md:py-[20px] px-[20px] border border-outline-subtle rounded-[16px] flex flex-col gap-5 ${
+            className ?? ""
+          }`}
         >
           <Typography
             variant="h3"

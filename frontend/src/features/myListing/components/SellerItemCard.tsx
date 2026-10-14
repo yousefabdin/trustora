@@ -10,6 +10,7 @@ interface ListingCardProps {
   lastActive?: string;
   status: "ACTIVE" | "INACTIVE" | string;
   onEdit?: () => void;
+  onViewOffers?: () => void;
 }
 
 export default function SellerListingCard({
@@ -18,10 +19,11 @@ export default function SellerListingCard({
   image,
   price = "$3,450.00",
   views = 142,
-  offersCount = 5,
+  offersCount = 0,
   lastActive = "Active 2h ago",
   status = "ACTIVE",
   onEdit,
+  onViewOffers,
 }: ListingCardProps) {
   const formattedPrice =
     typeof price === "number"
@@ -65,16 +67,31 @@ export default function SellerListingCard({
                 <Icon icon={"akar-icons:eye"}></Icon>
                 {views} views
               </span>
-              <span className="flex items-center gap-1.5">
-                <Icon icon={"ic:outline-local-offer"}></Icon>
-                {offersCount} offers
-              </span>
+              <button
+                type="button"
+                onClick={onViewOffers}
+                className={clsx(
+                  "flex items-center gap-1.5 px-2 py-0.5 rounded transition-all cursor-pointer",
+                  offersCount > 0
+                    ? "bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold border border-indigo-200"
+                    : "text-gray-500 hover:text-gray-700",
+                )}
+                title={offersCount > 0 ? "Click to view and review offers" : "No offers yet"}
+              >
+                <Icon icon={"ic:outline-local-offer"} className="w-3.5 h-3.5" />
+                <span>
+                  {offersCount} {offersCount === 1 ? "offer" : "offers"}
+                </span>
+                {offersCount > 0 && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse" />
+                )}
+              </button>
               <span className="text-gray-400">• {lastActive}</span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-20 flex-shrink-0">
+        <div className="flex items-center gap-6 sm:gap-12 flex-shrink-0">
           <div className="flex items-start flex-col text-right ">
             <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">
               Current Price
@@ -83,7 +100,7 @@ export default function SellerListingCard({
               {formattedPrice}
             </p>
           </div>
-          <div className="flex items-center gap-2 ">
+          <div className="flex items-center gap-2.5">
             <span
               className={clsx(
                 "px-3 py-1 text-[11px] font-jetbrains uppercase font-bold rounded-md tracking-wider border",
@@ -97,12 +114,24 @@ export default function SellerListingCard({
               {statusUpper}
             </span>
 
+            {offersCount > 0 && (
+              <button
+                type="button"
+                onClick={onViewOffers}
+                className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition-colors cursor-pointer"
+                title="Review incoming offers"
+              >
+                <Icon icon="ic:outline-local-offer" className="w-3.5 h-3.5" />
+                Review Offers
+              </button>
+            )}
+
             <button
               onClick={onEdit}
-              className="flex items-center gap-1 text-sm font-bold text-indigo-600 hover:text-indigo-700 transition-colors"
+              className="flex items-center gap-1 text-sm font-bold text-indigo-600 hover:text-indigo-700 transition-colors cursor-pointer"
             >
               Edit
-              <Icon icon={"akar-icons:chevron-right"}></Icon>
+              <Icon icon={"akar-icons:chevron-right"} />
             </button>
           </div>
         </div>
@@ -128,7 +157,7 @@ export default function SellerListingCard({
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-0.5">
+        <div className="flex items-center justify-between pt-0.5 flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <span
               className={clsx(
@@ -141,18 +170,43 @@ export default function SellerListingCard({
             <span className="font-mono text-xs text-gray-400">
               {views} views
             </span>
+            <button
+              type="button"
+              onClick={onViewOffers}
+              className={clsx(
+                "flex items-center gap-1 px-1.5 py-0.5 text-[11px] font-mono rounded cursor-pointer",
+                offersCount > 0
+                  ? "bg-indigo-50 text-indigo-700 font-bold border border-indigo-200"
+                  : "text-gray-400",
+              )}
+            >
+              <Icon icon="ic:outline-local-offer" className="w-3 h-3" />
+              <span>{offersCount} {offersCount === 1 ? "offer" : "offers"}</span>
+            </button>
           </div>
 
-          <button
-            onClick={onEdit}
-            className="flex items-center gap-0.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-colors cursor-pointer"
-          >
-            Edit
-            <Icon
-              icon={"akar-icons:chevron-right"}
-              className="w-3.5 h-3.5"
-            ></Icon>
-          </button>
+          <div className="flex items-center gap-2">
+            {offersCount > 0 && (
+              <button
+                type="button"
+                onClick={onViewOffers}
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-700"
+              >
+                Review ({offersCount})
+              </button>
+            )}
+
+            <button
+              onClick={onEdit}
+              className="flex items-center gap-0.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-colors cursor-pointer"
+            >
+              Edit
+              <Icon
+                icon={"akar-icons:chevron-right"}
+                className="w-3.5 h-3.5"
+              />
+            </button>
+          </div>
         </div>
       </div>
     </div>
