@@ -11,6 +11,8 @@ export interface CreateListingInput {
   category: string;
   priceCents: number;
   status?: "active" | "draft";
+  imageUrl?: string;
+  images?: string[];
 }
 
 export interface UpdateListingInput {
@@ -19,6 +21,8 @@ export interface UpdateListingInput {
   category?: string;
   priceCents?: number;
   status?: "active" | "inactive" | "draft" | "sold";
+  imageUrl?: string;
+  images?: string[];
 }
 
 export const getSellerListings = async (
@@ -45,6 +49,8 @@ export const createListing = async (
     category: data.category.toLowerCase().trim(),
     priceCents: data.priceCents,
     status: data.status || "active",
+    imageUrl: data.imageUrl,
+    images: data.images,
   });
   return adaptListing(response.data);
 };

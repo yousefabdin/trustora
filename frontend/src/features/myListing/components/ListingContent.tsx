@@ -17,7 +17,9 @@ export default function ListingContent({
   const { user } = useAuth();
   const [items, setItems] = useState<MarketplaceListing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"all" | "active" | "sold" | "draft">("all");
+  const [activeTab, setActiveTab] = useState<
+    "all" | "active" | "sold" | "draft"
+  >("all");
   const [refreshKey, setRefreshKey] = useState(0);
 
   const limit = 8;
@@ -47,7 +49,11 @@ export default function ListingContent({
     onFormOpenChange?.(modal || isEditOpen);
   }, [modal, isEditOpen, onFormOpenChange]);
 
-  const filteredItems = items.filter((item) => {
+  const visibleItems = items.filter(
+    (item) => (item.status || "").toLowerCase() !== "inactive",
+  );
+
+  const filteredItems = visibleItems.filter((item) => {
     if (activeTab === "all") return true;
     return (item.status || "active").toLowerCase() === activeTab;
   });
@@ -85,7 +91,7 @@ export default function ListingContent({
       {!modal && !isEditOpen && (
         <>
           <ListingHeader
-            sellerItems={items}
+            sellerItems={visibleItems}
             setModal={setModal}
             modal={modal}
             user={user}

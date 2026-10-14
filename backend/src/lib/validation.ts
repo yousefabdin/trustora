@@ -15,19 +15,23 @@ export const loginSchema = z.object({
 
 export const createListingSchema = z.object({
   title: z.string().trim().min(1).max(200),
-  description: z.string().trim().min(1).max(5000),
+  description: z.string().trim().min(1).max(10_000_000),
   category: z.string().trim().min(1).max(100),
   priceCents: z.number().int().nonnegative(),
   status: z.enum(['active', 'draft']).optional().default('active'),
+  imageUrl: z.string().max(15_000_000).optional(),
+  images: z.array(z.string().max(15_000_000)).max(10).optional(),
 });
 
 export const updateListingSchema = z
   .object({
     title: z.string().trim().min(1).max(200),
-    description: z.string().trim().min(1).max(5000),
+    description: z.string().trim().min(1).max(10_000_000),
     category: z.string().trim().min(1).max(100),
     priceCents: z.number().int().nonnegative(),
     status: z.enum(['active', 'inactive', 'draft', 'sold']),
+    imageUrl: z.string().max(15_000_000).optional(),
+    images: z.array(z.string().max(15_000_000)).max(10).optional(),
   })
   .partial()
   .refine((data) => Object.keys(data).length > 0, { message: 'At least one field must be provided' });
@@ -58,8 +62,19 @@ export const shipOrderSchema = z.object({
 
 export const disputeOrderSchema = z.object({
   reason: z.string().trim().min(1).max(200),
-  description: z.string().trim().min(1).max(5000),
-  evidenceFiles: z.array(z.string().trim().max(500)).max(10).optional(),
+  description: z.string().trim().min(1).max(10_000_000),
+  evidenceFiles: z
+    .array(
+      z.union([
+        z.string().max(15_000_000),
+        z.object({
+          name: z.string().trim().max(500),
+          url: z.string().max(15_000_000).optional(),
+        }),
+      ]),
+    )
+    .max(10)
+    .optional(),
 });
 
 export const resolveOrderSchema = z.object({

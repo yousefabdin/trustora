@@ -3,13 +3,7 @@ import { Router } from 'express';
 import { prisma } from '../db/client';
 import { asyncHandler } from '../lib/asyncHandler';
 import { AppError, forbidden, notFound } from '../lib/errors';
-import {
-  createOrderSchema,
-  disputeOrderSchema,
-  orderQuerySchema,
-  resolveOrderSchema,
-  shipOrderSchema,
-} from '../lib/validation';
+import { createOrderSchema, disputeOrderSchema, orderQuerySchema, resolveOrderSchema, shipOrderSchema } from '../lib/validation';
 import { requireAdmin, requireAuth, requireRole } from '../middleware/auth';
 import { loadOrderForParty, requireOrderTransition } from '../middleware/orderAuthz';
 import { validateBody, validateQuery } from '../middleware/validate';
@@ -66,10 +60,6 @@ ordersRouter.post(
         },
       });
 
-      // Simulated provider call: pure/in-memory, safe to run inside the DB
-      // transaction. A real Stripe-backed provider could not sit inside
-      // this transaction (see README) and would need an outbox/idempotency
-      // pattern instead.
       const hold = await provider.captureAndHold({
         orderId: created.id,
         amountCents: created.amountCents,
@@ -117,9 +107,7 @@ ordersRouter.get(
       limit?: number;
     };
 
-    const andConditions: any[] = [
-      role === 'buyer' ? { buyerId: req.user!.id } : { sellerId: req.user!.id },
-    ];
+    const andConditions: any[] = [role === 'buyer' ? { buyerId: req.user!.id } : { sellerId: req.user!.id }];
 
     if (status && status.trim() !== '' && status.toLowerCase() !== 'all') {
       const s = status.trim().toLowerCase();
@@ -280,13 +268,17 @@ ordersRouter.post(
     const { reason, description, evidenceFiles } = req.body as {
       reason: string;
       description: string;
-      evidenceFiles?: string[];
+      evidenceFiles?: Array<{ name: string; url?: string } | string>;
     };
 
-    const formattedNote =
-      evidenceFiles && evidenceFiles.length > 0
-        ? `${description}\n\n[Evidence Attached: ${evidenceFiles.join(', ')}]`
-        : description;
+    let formattedEvidence = '';
+    if (evidenceFiles && evidenceFiles.length > 0) {
+      formattedEvidence = JSON.stringify(evidenceFiles);
+    }
+
+    const formattedNote = formattedEvidence ? `${description}\n\n[Evidence Attached: ${formattedEvidence}]` : description;
+
+    const cleanEventNote = description.trim() || reason || 'Dispute opened by buyer';
 
     await prisma.$transaction((tx) =>
       applyOrderTransition(tx, {
@@ -297,7 +289,7 @@ ordersRouter.post(
         actorId: req.user!.id,
         actorRole: 'buyer',
         eventType: 'disputed',
-        note: formattedNote,
+        note: cleanEventNote,
         extraData: { disputeReason: reason, disputeNote: formattedNote },
       }),
     );

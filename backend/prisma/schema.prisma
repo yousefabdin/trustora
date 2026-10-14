@@ -7,6 +7,119 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String
+  roles         Role[]
+  isAdmin       Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  listings      Listing[]
+  orderEvents   OrderEvent[]
+  buyerOrders   Order[]        @relation("BuyerOrders")
+  sellerOrders  Order[]        @relation("SellerOrders")
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id                  String    @id @default(uuid())
+  userId              String
+  tokenHash           String    @unique
+  expiresAt           DateTime
+  revokedAt           DateTime?
+  replacedByTokenHash String?
+  createdAt           DateTime  @default(now())
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Listing {
+  id          String        @id @default(uuid())
+  sellerId    String
+  title       String
+  description String
+  category    String
+  priceCents  Int
+  status      ListingStatus @default(active)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  seller      User          @relation(fields: [sellerId], references: [id])
+  orders      Order[]
+
+  @@index([category])
+  @@index([status])
+  @@map("listings")
+}
+
+model Order {
+  id            String       @id @default(uuid())
+  listingId     String
+  buyerId       String
+  sellerId      String
+  amountCents   Int
+  status        OrderStatus  @default(pending_payment)
+  version       Int          @default(0)
+  trackingInfo  String?
+  disputeReason String?
+  disputeNote   String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  events        OrderEvent[]
+  buyer         User         @relation("BuyerOrders", fields: [buyerId], references: [id])
+  listing       Listing      @relation(fields: [listingId], references: [id])
+  seller        User         @relation("SellerOrders", fields: [sellerId], references: [id])
+  payment       Payment?
+
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderEvent {
+  id         String         @id @default(uuid())
+  orderId    String
+  actorId    String?
+  actorRole  String
+  type       OrderEventType
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  note       String?
+  createdAt  DateTime       @default(now())
+  actor      User?          @relation(fields: [actorId], references: [id])
+  order      Order          @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@map("order_events")
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  orderId     String        @unique
+  provider    String        @default("simulated")
+  providerRef String?
+  status      PaymentStatus @default(pending)
+  amountCents Int
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  order       Order         @relation(fields: [orderId], references: [id])
+
+  @@map("payments")
+}
+
+model notification_reads {
+  user_id         String
+  notification_id String
+  read_at         DateTime @default(now()) @db.Timestamp(6)
+
+  @@id([user_id, notification_id])
+}
+
 enum Role {
   buyer
   seller
@@ -45,112 +158,4 @@ enum PaymentStatus {
   released
   refunded
   failed
-}
-
-model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  passwordHash  String
-  roles         Role[]
-  isAdmin       Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  listings      Listing[]
-  buyerOrders   Order[]        @relation("BuyerOrders")
-  sellerOrders  Order[]        @relation("SellerOrders")
-  orderEvents   OrderEvent[]
-  refreshTokens RefreshToken[]
-
-  @@map("users")
-}
-
-model RefreshToken {
-  id                  String    @id @default(uuid())
-  userId              String
-  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash           String    @unique
-  expiresAt           DateTime
-  revokedAt           DateTime?
-  replacedByTokenHash String?
-  createdAt           DateTime  @default(now())
-
-  @@index([userId])
-  @@map("refresh_tokens")
-}
-
-model Listing {
-  id          String        @id @default(uuid())
-  sellerId    String
-  seller      User          @relation(fields: [sellerId], references: [id])
-  title       String
-  description String
-  category    String
-  priceCents  Int
-  status      ListingStatus @default(active)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  orders      Order[]
-
-  @@index([category])
-  @@index([status])
-  @@map("listings")
-}
-
-model Order {
-  id            String      @id @default(uuid())
-  listingId     String
-  listing       Listing     @relation(fields: [listingId], references: [id])
-  buyerId       String
-  buyer         User        @relation("BuyerOrders", fields: [buyerId], references: [id])
-  sellerId      String
-  seller        User        @relation("SellerOrders", fields: [sellerId], references: [id])
-  amountCents   Int
-  status        OrderStatus @default(pending_payment)
-  version       Int         @default(0)
-  trackingInfo  String?
-  disputeReason String?
-  disputeNote   String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  events        OrderEvent[]
-  payment       Payment?
-
-  @@index([buyerId])
-  @@index([sellerId])
-  @@index([status])
-  @@map("orders")
-}
-
-model OrderEvent {
-  id         String          @id @default(uuid())
-  orderId    String
-  order      Order           @relation(fields: [orderId], references: [id])
-  actorId    String?
-  actor      User?           @relation(fields: [actorId], references: [id])
-  actorRole  String
-  type       OrderEventType
-  fromStatus OrderStatus?
-  toStatus   OrderStatus
-  note       String?
-  createdAt  DateTime        @default(now())
-
-  @@index([orderId])
-  @@map("order_events")
-}
-
-model Payment {
-  id          String        @id @default(uuid())
-  orderId     String        @unique
-  order       Order         @relation(fields: [orderId], references: [id])
-  provider    String        @default("simulated")
-  providerRef String?
-  status      PaymentStatus @default(pending)
-  amountCents Int
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  @@map("payments")
 }

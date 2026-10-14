@@ -31,9 +31,6 @@ export default function FileUploader({
 
     const imageUrl = URL.createObjectURL(value);
 
-    // createObjectURL returns the same URL for the same File object.
-    // Only revoke a previous preview when the user picks a different file —
-    // do not revoke on unmount, because ListingForm may store this URL in the listing.
     if (objectUrlRef.current && objectUrlRef.current !== imageUrl) {
       URL.revokeObjectURL(objectUrlRef.current);
     }
@@ -68,10 +65,10 @@ export default function FileUploader({
 
       <div
         onClick={handleOpenFilePicker}
-        className="relative flex cursor-pointer items-center justify-center w-[72px] h-[72px] sm:w-[80px] sm:h-[72px] border border-dashed border-gray-300 rounded-lg overflow-hidden bg-white hover:bg-gray-50 transition-colors"
+        className="relative flex cursor-pointer items-center justify-center w-[72px] h-[72px] sm:w-[80px] sm:h-[72px] border border-dashed border-gray-300 rounded-lg overflow-hidden bg-white hover:bg-gray-50 transition-colors group"
       >
         {!preview ? (
-          <Icon icon="akar-icons:plus" className="text-gray-400 text-lg" />
+          <Icon icon="akar-icons:plus" className="text-gray-400 text-lg group-hover:text-indigo-600 transition-colors" />
         ) : (
           <>
             <img
@@ -79,9 +76,23 @@ export default function FileUploader({
               alt="Preview"
               className="w-full h-full object-cover"
             />
-            <div className="absolute top-1 right-1 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center pointer-events-none">
-              <Icon icon="lucide:aperture" className="text-white text-[10px]" />
-            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (fileInput.current) fileInput.current.value = "";
+                if (objectUrlRef.current) {
+                  URL.revokeObjectURL(objectUrlRef.current);
+                  objectUrlRef.current = null;
+                }
+                setPreview(null);
+                onChange(null);
+              }}
+              className="absolute top-1 right-1 w-5 h-5 bg-black/70 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors cursor-pointer z-10 shadow-xs"
+              title="Remove image"
+            >
+              <Icon icon="lucide:x" className="w-3 h-3 text-white" />
+            </button>
           </>
         )}
       </div>

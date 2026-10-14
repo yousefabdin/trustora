@@ -11,7 +11,7 @@ interface OrderHeaderSectionProps {
   handleOpenDisputed?: (
     reason: string,
     description: string,
-    evidenceFiles?: string[]
+    evidenceFiles?: Array<{ name: string; url?: string } | string>
   ) => void | Promise<void>;
   handleConfirmReceipt?: () => void | Promise<void>;
 }

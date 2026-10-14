@@ -1,8 +1,6 @@
 import { actorContextFor, canPerformAction, OrderStatus } from './orderStateMachine';
 
 export interface OrderPermissions {
-  isBuyer: boolean;
-  isSeller: boolean;
   canShip: boolean;
   canConfirmReceipt: boolean;
   canDispute: boolean;
@@ -27,8 +25,6 @@ export function computeOrderPermissions(
   const actor = actorContextFor(order, requester);
 
   return {
-    isBuyer: actor.isBuyer,
-    isSeller: actor.isSeller,
     canShip: canPerformAction(order.status, 'ship', actor),
     canConfirmReceipt: canPerformAction(order.status, 'confirm_receipt', actor),
     canDispute: canPerformAction(order.status, 'dispute', actor),

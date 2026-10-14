@@ -27,16 +27,16 @@ export default function SellerListingCard({
     typeof price === "number"
       ? `$${price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
       : typeof price === "string" && price.startsWith("$")
-      ? price
-      : `$${price}`;
+        ? price
+        : `$${price}`;
 
   const statusUpper = (status || "ACTIVE").toUpperCase();
   const statusBadgeMobile =
     statusUpper === "SOLD"
       ? "bg-neutral-100 text-neutral-500 border border-neutral-200"
       : statusUpper === "DRAFT"
-      ? "bg-amber-50 text-amber-600 border border-amber-200"
-      : "bg-emerald-50 text-emerald-600 border border-emerald-100";
+        ? "bg-amber-50 text-amber-600 border border-amber-200"
+        : "bg-emerald-50 text-emerald-600 border border-emerald-100";
 
   return (
     <div className="w-full bg-white rounded-xl border border-gray-200 shadow-sm hover:border-gray-300 transition-colors">
@@ -90,8 +90,8 @@ export default function SellerListingCard({
                 statusUpper === "SOLD"
                   ? "bg-neutral-100 text-neutral-600 border-neutral-200"
                   : statusUpper === "DRAFT"
-                  ? "bg-amber-50 text-amber-700 border-amber-200"
-                  : "bg-emerald-50 text-emerald-600 border-emerald-100",
+                    ? "bg-amber-50 text-amber-700 border-amber-200"
+                    : "bg-emerald-50 text-emerald-600 border-emerald-100",
               )}
             >
               {statusUpper}
@@ -148,7 +148,10 @@ export default function SellerListingCard({
             className="flex items-center gap-0.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-colors cursor-pointer"
           >
             Edit
-            <Icon icon={"akar-icons:chevron-right"} className="w-3.5 h-3.5"></Icon>
+            <Icon
+              icon={"akar-icons:chevron-right"}
+              className="w-3.5 h-3.5"
+            ></Icon>
           </button>
         </div>
       </div>

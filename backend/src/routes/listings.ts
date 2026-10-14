@@ -8,7 +8,6 @@ import { validateBody, validateQuery } from '../middleware/validate';
 import { toListingResponse } from '../services/listingView';
 
 export const listingsRouter = Router();
-
 const SELLER_INCLUDE = { seller: { select: { email: true } } } as const;
 
 listingsRouter.get(
@@ -82,7 +81,7 @@ listingsRouter.get(
   requireAuth,
   asyncHandler(async (req, res) => {
     const listings = await prisma.listing.findMany({
-      where: { sellerId: req.user!.id },
+      where: { sellerId: req.user!.id, status: { not: 'inactive' } },
       include: SELLER_INCLUDE,
       orderBy: { createdAt: 'desc' },
     });
@@ -105,19 +104,32 @@ listingsRouter.post(
   requireRole('seller'),
   validateBody(createListingSchema),
   asyncHandler(async (req, res) => {
-    const { title, description, category, priceCents, status } = req.body as {
+    const { title, description, category, priceCents, status, imageUrl, images } = req.body as {
       title: string;
       description: string;
       category: string;
       priceCents: number;
       status?: 'active' | 'draft';
+      imageUrl?: string;
+      images?: string[];
     };
+
+    const imageList: string[] = [];
+    if (images && Array.isArray(images)) {
+      imageList.push(...images.filter(Boolean));
+    } else if (imageUrl) {
+      imageList.push(imageUrl);
+    }
+
+    const cleanDesc = description.replace(/\n\n\[?Images:\s*[\s\S]+?\]?(?:\s*$)?/, '').trim();
+    const formattedDescription =
+      imageList.length > 0 ? `${cleanDesc}\n\n[Images: ${JSON.stringify(imageList)}]` : cleanDesc;
 
     const listing = await prisma.listing.create({
       data: {
         sellerId: req.user!.id,
         title,
-        description,
+        description: formattedDescription,
         category,
         priceCents,
         status: status || 'active',
@@ -140,16 +152,69 @@ listingsRouter.patch(
       throw forbidden('Only the owning seller can modify this listing');
     }
 
+    const { title, description, category, priceCents, status, imageUrl, images } = req.body as {
+      title?: string;
+      description?: string;
+      category?: string;
+      priceCents?: number;
+      status?: 'active' | 'inactive' | 'draft' | 'sold';
+      imageUrl?: string;
+      images?: string[];
+    };
+
+    let formattedDescription: string | undefined = undefined;
+    if (description !== undefined || imageUrl !== undefined || images !== undefined) {
+      const rawBase = description !== undefined ? description : listing.description;
+      const baseDesc = rawBase
+        .replace(/\n\n\[?Images:\s*[\s\S]+?\]?(?:\s*$)?/, '')
+        .trim();
+
+      const imageList: string[] = [];
+      if (images && Array.isArray(images)) {
+        imageList.push(...images.filter(Boolean));
+      } else if (imageUrl) {
+        imageList.push(imageUrl);
+      } else {
+        const marker = '[Images:';
+        const unMarker = '\n\n Images:';
+        const idx = listing.description.indexOf(marker);
+        const unIdx = listing.description.indexOf(unMarker);
+        if (idx !== -1) {
+          let raw = listing.description.slice(idx + marker.length).trim();
+          if (raw.endsWith(']')) raw = raw.slice(0, -1).trim();
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) imageList.push(...parsed);
+            else if (typeof parsed === 'string') imageList.push(parsed);
+          } catch {
+            imageList.push(...raw.split(',').map((s) => s.trim()).filter(Boolean));
+          }
+        } else if (unIdx !== -1) {
+          const raw = listing.description.slice(unIdx + unMarker.length).trim();
+          imageList.push(...raw.split(',').map((s) => s.trim()).filter(Boolean));
+        }
+      }
+
+      formattedDescription =
+        imageList.length > 0 ? `${baseDesc}\n\n[Images: ${JSON.stringify(imageList)}]` : baseDesc;
+    }
+
+    const updateData: any = {};
+    if (title !== undefined) updateData.title = title;
+    if (category !== undefined) updateData.category = category;
+    if (priceCents !== undefined) updateData.priceCents = priceCents;
+    if (status !== undefined) updateData.status = status;
+    if (formattedDescription !== undefined) updateData.description = formattedDescription;
+
     const updated = await prisma.listing.update({
       where: { id: listing.id },
-      data: req.body,
+      data: updateData,
       include: SELLER_INCLUDE,
     });
 
     res.status(200).json(toListingResponse(updated));
   }),
 );
-
 listingsRouter.delete(
   '/:id',
   requireAuth,
@@ -160,10 +225,6 @@ listingsRouter.delete(
       throw forbidden('Only the owning seller can delete this listing');
     }
 
-    // Soft delete: existing orders reference this listing and must keep
-    // rendering their historical listing details, so the row can't be
-    // hard-removed. 'inactive' is the only "gone from the marketplace"
-    // state the Listing model has.
     await prisma.listing.update({ where: { id: listing.id }, data: { status: 'inactive' } });
 
     res.status(204).send();

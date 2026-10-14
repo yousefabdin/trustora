@@ -1,4 +1,3 @@
-import React from "react";
 import Typography from "@/components/atoms/typography/typography";
 import { Icon } from "@iconify/react";
 import type { VerificationItem } from "../profileData";
@@ -10,7 +9,7 @@ interface TrustVerificationCardProps {
 
 export default function TrustVerificationCard({
   verifications: customVerifications,
-  verificationLevel = "Level 1 Verified",
+  verificationLevel = "Level 2 Verified",
 }: TrustVerificationCardProps) {
   const verifications = customVerifications || [
     {
@@ -51,22 +50,51 @@ export default function TrustVerificationCard({
   ];
 
   return (
-    <div className="w-full bg-surface-default border border-outline-subtle rounded-xl p-4 sm:p-6 shadow-xs flex flex-col gap-4">
-      <div className="flex items-center justify-between pb-3 border-b border-outline-subtle flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-md bg-success-surface text-success-icon">
-            <Icon icon="lucide:shield-check" className="w-4 h-4" />
+    <div className="w-full bg-surface-default border border-outline-subtle rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col gap-5">
+      <div className="flex items-center justify-between pb-3.5 border-b border-outline-subtle flex-wrap gap-2">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-success-surface text-success-icon flex items-center justify-center">
+            <Icon icon="lucide:shield-check" className="w-4.5 h-4.5" />
           </div>
-          <Typography
-            variant="h3"
-            className="text-[15px] sm:text-[16px] font-bold text-content-primary leading-tight"
-          >
-            Trust & Verification
-          </Typography>
+          <div>
+            <Typography
+              variant="h3"
+              className="text-[16px] font-bold text-content-primary leading-tight"
+            >
+              Trust & Verification
+            </Typography>
+            <Typography
+              variant="caption"
+              className="text-[12px] text-content-tertiary"
+            >
+              Your verified identity & marketplace escrow reputation
+            </Typography>
+          </div>
         </div>
 
         <span className="text-[11px] sm:text-[12px] font-semibold text-success-icon bg-success-surface px-2.5 py-0.5 rounded-full border border-success-outline">
           {verificationLevel}
+        </span>
+      </div>
+
+      {/* Trust Score Banner */}
+      <div className="p-3.5 rounded-xl bg-escrow-surface/60 border border-escrow-outline flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-escrow-surface text-escrow-foreground flex items-center justify-center font-bold text-sm">
+            99%
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[13px] font-semibold text-content-primary">
+              Trustora Escrow Rating
+            </span>
+            <span className="text-[11px] text-content-tertiary">
+              100% clean escrow history with zero dispute strikes
+            </span>
+          </div>
+        </div>
+
+        <span className="text-[11px] font-semibold text-escrow-foreground bg-surface-default px-2 py-0.5 rounded border border-escrow-outline shadow-2xs">
+          Tier 1 Trust
         </span>
       </div>
 

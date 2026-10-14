@@ -30,7 +30,6 @@ export default function CardsListing({
   const handleClick = (id: string | number) => {
     navigate(`/item/${id}`);
   };
-
   return (
     <div className="w-full flex flex-col items-center justify-center gap-[24px] md:py-[16px]">
       {currentItems.length === 0 ? (
@@ -45,7 +44,11 @@ export default function CardsListing({
       ) : (
         <div className="w-full grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
           {currentItems.map((card) => (
-            <div key={card.id} onClick={() => handleClick(card.id)} className="h-full">
+            <div
+              key={card.id}
+              onClick={() => handleClick(card.id)}
+              className="h-full"
+            >
               <ItemCard
                 id={card.id}
                 itemName={card.itemName}
@@ -54,7 +57,8 @@ export default function CardsListing({
                 sellerName={card.sellerName}
                 location={
                   card.category
-                    ? card.category.charAt(0).toUpperCase() + card.category.slice(1)
+                    ? card.category.charAt(0).toUpperCase() +
+                      card.category.slice(1)
                     : "Verified"
                 }
               />

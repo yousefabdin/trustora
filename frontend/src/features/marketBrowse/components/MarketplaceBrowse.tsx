@@ -1,50 +1,50 @@
 import FilterSection from "./FilterSection";
 import ItemsCardSection from "./ItemsCardSection";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useMarketplaceListings } from "@/services/itemsServices";
 
 export default function MarketplaceBrowse() {
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [priceRange, setPriceRange] = useState("all");
   const [sortBy, setSortBy] = useState("price-high-low");
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  const priceBounds = useMemo(() => {
-    if (priceRange === "0-50") return { minPrice: 0, maxPrice: 5000 };
-    if (priceRange === "50-150") return { minPrice: 5000, maxPrice: 15000 };
-    if (priceRange === "150-300") return { minPrice: 15000, maxPrice: 30000 };
-    if (priceRange === "300-above") return { minPrice: 30000 };
-    return {};
-  }, [priceRange]);
-
-  const queryParams = useMemo(() => {
-    return {
-      search: debouncedSearch.trim() || undefined,
-      category: category !== "all" ? category : undefined,
-      minPrice: priceBounds.minPrice,
-      maxPrice: priceBounds.maxPrice,
-      sortBy,
-    };
-  }, [debouncedSearch, category, priceBounds, sortBy]);
-
-  const { data: listings = [], isLoading, error } = useMarketplaceListings(queryParams);
-
-  const handleClearFilters = () => {
-    setSearch("");
-    setDebouncedSearch("");
-    setCategory("all");
-    setPriceRange("all");
-    setSortBy("price-high-low");
-  };
-
+  const { data: listings = [], isLoading, error } = useMarketplaceListings();
+  const filteredItems = useMemo(() => {
+    return listings
+      .filter((item) => {
+        if (
+          search &&
+          !item.itemName.toLowerCase().includes(search.toLowerCase()) &&
+          !item.category.toLowerCase().includes(search.toLowerCase())
+        ) {
+          return false;
+        }
+        if (category && category !== "all") {
+          const itemCat = item.category.toLowerCase();
+          const selCat = category.toLowerCase();
+          if (!itemCat.includes(selCat)) {
+            return false;
+          }
+        }
+        if (priceRange && priceRange !== "all") {
+          const price = item.itemPrice;
+          if (priceRange === "0-50" && price > 50) return false;
+          if (priceRange === "50-150" && (price < 50 || price > 150))
+            return false;
+          if (priceRange === "150-300" && (price < 150 || price > 300))
+            return false;
+          if (priceRange === "300-above" && price < 300) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortBy === "price-high-low") return b.itemPrice - a.itemPrice;
+        if (sortBy === "price-low-high") return a.itemPrice - b.itemPrice;
+        if (sortBy === "newest") return b.id.localeCompare(a.id);
+        return 0;
+      });
+  }, [listings, search, category, priceRange, sortBy]);
   const renderScreenData = () => {
     if (isLoading) {
       return (
@@ -60,19 +60,11 @@ export default function MarketplaceBrowse() {
         </div>
       );
     }
-    return (
-      <ItemsCardSection
-        search={debouncedSearch}
-        items={listings}
-        onClearFilters={handleClearFilters}
-      />
-    );
+    return <ItemsCardSection search={search} items={filteredItems} />;
   };
-
   return (
     <div>
       <FilterSection
-        search={search}
         setSearch={setSearch}
         category={category}
         onCategoryChange={setCategory}

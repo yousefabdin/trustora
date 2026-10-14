@@ -12,6 +12,9 @@ export default function RoleRoute({ allowedRoles }: RoleRouteProps) {
   }
 
   if (!user || !allowedRoles.includes(user.role)) {
+    if (user?.role === "admin") {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
     return <Navigate to="/" replace />;
   }
   return <Outlet />;

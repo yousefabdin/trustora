@@ -45,28 +45,13 @@ const guestNavItems = [
 
 const adminNavItems = [
   {
-    label: "Browse",
-    href: "/browse",
-    className: "font-inter font-normal text-[14px] text-content-secondary",
-  },
-  {
-    label: "My Orders",
-    href: "/myorders",
-    className: "font-inter font-normal text-[14px] text-content-secondary",
-  },
-  {
-    label: "My Listings",
-    href: "/seller/dashboard",
+    label: "Dashboard",
+    href: "/admin/dashboard",
     className: "font-inter font-normal text-[14px] text-content-secondary",
   },
   {
     label: "Disputes",
     href: "/admin/disputes",
-    className: "font-inter font-normal text-[14px] text-content-secondary",
-  },
-  {
-    label: "Dashboard",
-    href: "/admin/dashboard",
     className: "font-inter font-normal text-[14px] text-content-secondary",
   },
 ];
@@ -94,7 +79,6 @@ export default function NavBar({
   const isAuthenticated = propIsAuth ?? contextIsAuth;
 
   const items = user ? navItems[user.role] : userNavItems;
-  console.log(items);
   const handleClick = () => {
     setIsOpen(!isOpen);
   };
@@ -102,6 +86,7 @@ export default function NavBar({
     navigate("/");
     logout();
   };
+  console.log(user);
   return (
     <>
       <div className="w-full flex justify-between items-center">
@@ -172,16 +157,18 @@ export default function NavBar({
 
             {isAuthenticated && (
               <>
-                <Link to="/seller/dashboard">
-                  <Button
-                    variant="primary"
-                    size="small"
-                    className="whitespace-nowrap rounded-[8px]! text-[14px] font-[600] px-3.5 py-1.5 flex items-center gap-1.5"
-                  >
-                    <Icon icon="lucide:plus" className="w-4 h-4" />
-                    Sell
-                  </Button>
-                </Link>
+                {user?.role !== "admin" && (
+                  <Link to="/seller/dashboard">
+                    <Button
+                      variant="primary"
+                      size="small"
+                      className="whitespace-nowrap rounded-[8px]! text-[14px] font-[600] px-3.5 py-1.5 flex items-center gap-1.5"
+                    >
+                      <Icon icon="lucide:plus" className="w-4 h-4" />
+                      Sell
+                    </Button>
+                  </Link>
+                )}
                 <Button
                   variant="ghost"
                   size="small"
@@ -191,11 +178,11 @@ export default function NavBar({
                   Logout
                 </Button>
                 <NotificationDropdown isAdmin={user?.role === "admin"} />
-                <Link to="/profile" title="View Profile">
+                <Link to="/profile" title="View Profile" className="relative group">
                   <img
-                    src="/assets/images/img.png"
-                    alt="Profile"
-                    className="rounded-full w-[32px] h-[32px] hover:ring-2 hover:ring-accent-default transition-all"
+                    src={user?.avatarUrl || "/assets/images/img.png"}
+                    alt={user?.name || "Profile"}
+                    className="rounded-full w-[34px] h-[34px] object-cover border border-outline-default group-hover:ring-2 group-hover:ring-accent-default transition-all shadow-2xs"
                   />
                 </Link>
               </>

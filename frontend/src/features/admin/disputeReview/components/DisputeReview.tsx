@@ -1,6 +1,8 @@
+import { useState } from "react";
 import Typography from "@/components/atoms/typography/typography";
 import StatusBadge from "@/components/molecules/statusBadges/StatusBadges";
 import { useDisputeDetails, getDaysOpen } from "@/services/disputeService";
+import { isDisputeResolved } from "@/utils/disputeUtils";
 import { Icon } from "@iconify/react";
 import { useNavigate, useParams } from "react-router-dom";
 import DisputeSummaryCard from "./DisputeSummaryCard";
@@ -13,11 +15,16 @@ import DisputeActivityLog from "./DisputeActivityLog";
 export default function DisputeReview() {
   const { disputeId } = useParams();
   const navigate = useNavigate();
+  const [isLocallyResolved, setIsLocallyResolved] = useState(false);
   const {
     data: disputeOrder,
     isLoading,
     isError,
   } = useDisputeDetails(disputeId);
+
+  const isResolved =
+    isLocallyResolved ||
+    (disputeOrder ? isDisputeResolved(disputeOrder) : false);
 
   const daysCount = disputeOrder ? getDaysOpen(disputeOrder) : 3;
   const daysOpen = `${daysCount} ${daysCount === 1 ? "day" : "days"}`;
@@ -35,6 +42,20 @@ export default function DisputeReview() {
       </div>
     );
   }
+
+  const badgeStatusText = isResolved
+    ? disputeOrder?.status === "Refunded" || disputeOrder?.rawStatus === "refunded"
+      ? "Refunded"
+      : "Resolved"
+    : disputeOrder?.rawStatus === "disputed"
+      ? "Open"
+      : disputeOrder?.status || "Open";
+
+  const badgeVariant = isResolved
+    ? disputeOrder?.status === "Refunded" || disputeOrder?.rawStatus === "refunded"
+      ? "Refunded"
+      : "Completed"
+    : "Disputed";
 
   return (
     <div className="w-full min-h-screen bg-[#F5F5F4] flex flex-col gap-4 md:gap-[24px] p-4 md:p-[32px]">
@@ -65,16 +86,12 @@ export default function DisputeReview() {
               Dispute #{disputeNumber}
             </h1>
             <StatusBadge
-              children={
-                disputeOrder?.rawStatus === "disputed"
-                  ? "Open"
-                  : disputeOrder?.status || "Open"
-              }
-              variant="Disputed"
+              children={badgeStatusText}
+              variant={badgeVariant}
             />
           </div>
           <span className="text-[13px] font-normal text-content-secondary">
-            Filed {daysOpen} ago
+            {isResolved ? "Dispute Resolved" : `Filed ${daysOpen} ago`}
           </span>
         </div>
 
@@ -86,18 +103,14 @@ export default function DisputeReview() {
             Dispute #{disputeNumber}
           </Typography>
           <StatusBadge
-            children={
-              disputeOrder?.rawStatus === "disputed"
-                ? "Open"
-                : disputeOrder?.status || "Open"
-            }
-            variant="Disputed"
+            children={badgeStatusText}
+            variant={badgeVariant}
           />
           <Typography
             variant="caption"
             className="text-[14px] font-[400]! text-content-secondary"
           >
-            Filed {daysOpen} ago
+            {isResolved ? "Dispute Resolved" : `Filed ${daysOpen} ago`}
           </Typography>
         </div>
       </div>
@@ -105,7 +118,11 @@ export default function DisputeReview() {
       <div className="flex flex-col lg:flex-row gap-4 lg:gap-[24px] h-full w-full">
         <div className="flex-2 flex flex-col gap-4 lg:gap-[24px]">
           <DisputeSummaryCard disputeOrder={disputeOrder} />
-          <ClaimCard variant="buyer" disputeOrder={disputeOrder} />
+          <ClaimCard
+            variant="buyer"
+            disputeOrder={disputeOrder}
+            evidenceFiles={disputeOrder?.evidenceFiles}
+          />
           <ClaimCard variant="seller" disputeOrder={disputeOrder} />
         </div>
 
@@ -113,17 +130,27 @@ export default function DisputeReview() {
           <HeldCard disputeOrder={disputeOrder} className="block lg:hidden" />
           <OrderDetailsCard disputeOrder={disputeOrder} />
           <HeldCard disputeOrder={disputeOrder} className="hidden lg:flex" />
-          <AdminDecisionCard disputeOrder={disputeOrder} />
+          <AdminDecisionCard
+            disputeOrder={disputeOrder}
+            onResolveSuccess={() => setIsLocallyResolved(true)}
+          />
           <DisputeActivityLog disputeOrder={disputeOrder} />
 
           <div className="block lg:hidden pt-2 pb-6">
-            <button
-              type="submit"
-              form="admin-decision-form"
-              className="w-full py-3 bg-[#4F46E5] hover:bg-[#4338CA] active:bg-[#3730A3] text-white font-semibold text-[14px] rounded-[8px] transition-colors cursor-pointer shadow-xs"
-            >
-              Submit Resolution
-            </button>
+            {isResolved ? (
+              <div className="w-full py-3 bg-gray-100 border border-outline-default text-content-tertiary font-semibold text-[14px] rounded-[8px] flex items-center justify-center gap-2 cursor-not-allowed">
+                <Icon icon="lucide:lock" className="w-4 h-4 text-content-tertiary" />
+                Resolution Finalized & Locked
+              </div>
+            ) : (
+              <button
+                type="submit"
+                form="admin-decision-form"
+                className="w-full py-3 bg-[#4F46E5] hover:bg-[#4338CA] active:bg-[#3730A3] text-white font-semibold text-[14px] rounded-[8px] transition-colors cursor-pointer shadow-xs"
+              >
+                Submit Resolution
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -118,8 +118,8 @@ export default function SideBar({
                 >
                   <div className="relative">
                     <img
-                      src="/assets/images/img.png"
-                      alt="User Avatar"
+                      src={user?.avatarUrl || "/assets/images/img.png"}
+                      alt={user?.name || "User Avatar"}
                       className="w-10 h-10 rounded-full border border-outline-strong object-cover"
                     />
                     <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full" />

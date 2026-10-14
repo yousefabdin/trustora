@@ -4,12 +4,32 @@ import type {
   AuthResponse,
   BackendUserResponse,
   LoginCredentials,
-  LoginResponse,
   MockUser,
   User,
 } from "@/types/auth";
 type RegisterCredentials = Pick<MockUser, "name" | "email" | "password">;
 const AUTH_TOKEN_KEY = "auth_token";
+
+export const getStoredUserProfile = (userId: string): Partial<User> => {
+  try {
+    const raw = localStorage.getItem(`trustora_user_profile_${userId}`);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
+export const saveStoredUserProfile = (userId: string, data: Partial<User>) => {
+  try {
+    const existing = getStoredUserProfile(userId);
+    localStorage.setItem(
+      `trustora_user_profile_${userId}`,
+      JSON.stringify({ ...existing, ...data }),
+    );
+  } catch {
+    // ignore storage errors
+  }
+};
 
 export const adaptUser = (backendUser: BackendUserResponse): User => {
   const roles = backendUser.roles || [];
@@ -18,13 +38,20 @@ export const adaptUser = (backendUser: BackendUserResponse): User => {
     primaryRole = "admin";
   }
   const namePart = backendUser.email.split("@")[0] || "User";
-  const displayName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+  const defaultDisplayName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+  const stored = getStoredUserProfile(backendUser.id);
+
   return {
     id: backendUser.id,
     email: backendUser.email,
-    name: displayName,
+    name: stored.name || backendUser.name || defaultDisplayName,
     role: primaryRole,
     roles,
+    avatarUrl: stored.avatarUrl || backendUser.avatarUrl,
+    phone: stored.phone || backendUser.phone || "+1 (555) 234-5678",
+    address: stored.address || backendUser.address || "742 Evergreen Terrace, Springfield, VA 22150",
+    bio: stored.bio || backendUser.bio || "Active Trustora buyer & verified trader.",
+    memberSince: stored.memberSince || backendUser.memberSince || "March 2026",
   };
 };
 

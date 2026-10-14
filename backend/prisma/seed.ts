@@ -73,25 +73,25 @@ async function main() {
 
   const buyer = await prisma.user.upsert({
     where: { email: 'buyer@holdline.dev' },
-    update: { roles: [Role.buyer, Role.seller] },
+    update: { roles: [Role.buyer, Role.seller], passwordHash, isAdmin: false },
     create: { email: 'buyer@holdline.dev', passwordHash, roles: [Role.buyer, Role.seller], isAdmin: false },
   });
 
   const seller = await prisma.user.upsert({
     where: { email: 'seller@holdline.dev' },
-    update: { roles: [Role.buyer, Role.seller] },
+    update: { roles: [Role.buyer, Role.seller], passwordHash, isAdmin: false },
     create: { email: 'seller@holdline.dev', passwordHash, roles: [Role.buyer, Role.seller], isAdmin: false },
   });
 
   const dual = await prisma.user.upsert({
     where: { email: 'dual@holdline.dev' },
-    update: { roles: [Role.buyer, Role.seller] },
+    update: { roles: [Role.buyer, Role.seller], passwordHash, isAdmin: false },
     create: { email: 'dual@holdline.dev', passwordHash, roles: [Role.buyer, Role.seller], isAdmin: false },
   });
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@holdline.dev' },
-    update: { roles: [Role.buyer, Role.seller] },
+    update: { roles: [Role.buyer, Role.seller], passwordHash, isAdmin: true },
     create: { email: 'admin@holdline.dev', passwordHash, roles: [Role.buyer, Role.seller], isAdmin: true },
   });
 

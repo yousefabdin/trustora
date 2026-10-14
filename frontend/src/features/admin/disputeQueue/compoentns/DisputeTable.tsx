@@ -120,6 +120,10 @@ export const DisputeTable: React.FC<DisputeTableProps> = ({
           const reasonLabel = formatDisputeReason(
             dispute.disputeReason || (dispute as any).reason,
           );
+          const evidenceImgs = (dispute.evidenceFiles || []).filter(
+            (f: any) => Boolean(f?.url || (typeof f === "string" && (f.startsWith("http") || f.startsWith("data:"))))
+          );
+          const firstEvidenceUrl = evidenceImgs[0]?.url || (typeof evidenceImgs[0] === "string" ? evidenceImgs[0] : undefined);
 
           return (
             <div
@@ -155,11 +159,30 @@ export const DisputeTable: React.FC<DisputeTableProps> = ({
                 </div>
               </div>
 
-              <div className="text-xs flex items-center flex-wrap gap-1 border-b border-page-tertiary pb-2">
-                <span className="text-neutral-400">Reason:</span>
-                <span className="font-medium text-neutral-800">
-                  {reasonLabel}
-                </span>
+              <div className="text-xs flex items-center justify-between flex-wrap gap-1 border-b border-page-tertiary pb-2">
+                <div className="flex items-center gap-1">
+                  <span className="text-neutral-400">Reason:</span>
+                  <span className="font-medium text-neutral-800">
+                    {reasonLabel}
+                  </span>
+                </div>
+                {firstEvidenceUrl && (
+                  <div
+                    className="flex items-center gap-1 cursor-pointer bg-neutral-100 hover:bg-neutral-200 px-1.5 py-0.5 rounded border border-neutral-200"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/admin/disputes/${dispute.id}`);
+                    }}
+                    title="View submitted dispute photo"
+                  >
+                    <img
+                      src={firstEvidenceUrl}
+                      alt="Dispute evidence"
+                      className="w-4 h-4 rounded object-cover"
+                    />
+                    <span className="text-[10px] font-semibold text-neutral-700">Photo attached</span>
+                  </div>
+                )}
               </div>
 
               <div className="text-xs flex items-center flex-wrap gap-1">
@@ -232,6 +255,10 @@ export const DisputeTable: React.FC<DisputeTableProps> = ({
               const reasonLabel = formatDisputeReason(
                 dispute.disputeReason || (dispute as any).reason,
               );
+              const evidenceImgs = (dispute.evidenceFiles || []).filter(
+                (f: any) => Boolean(f?.url || (typeof f === "string" && (f.startsWith("http") || f.startsWith("data:"))))
+              );
+              const firstEvidenceUrl = evidenceImgs[0]?.url || (typeof evidenceImgs[0] === "string" ? evidenceImgs[0] : undefined);
 
               return (
                 <tr
@@ -262,8 +289,29 @@ export const DisputeTable: React.FC<DisputeTableProps> = ({
                     {formattedAmount}
                   </td>
 
-                  <td className="py-4 px-4 text-[var(--content-secondary)] whitespace-nowrap max-w-[170px] truncate" title={reasonLabel}>
-                    {reasonLabel}
+                  <td className="py-4 px-4 text-[var(--content-secondary)] whitespace-nowrap max-w-[200px]" title={reasonLabel}>
+                    <div className="flex items-center gap-2">
+                      <span className="truncate max-w-[130px]">{reasonLabel}</span>
+                      {firstEvidenceUrl && (
+                        <div
+                          className="relative group/thumb cursor-pointer shrink-0"
+                          title="Buyer attached evidence photo. Click to review."
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/admin/disputes/${dispute.id}`);
+                          }}
+                        >
+                          <img
+                            src={firstEvidenceUrl}
+                            alt="Dispute evidence"
+                            className="w-7 h-7 rounded-[4px] object-cover border border-[var(--outline-default)] group-hover/thumb:border-indigo-500 hover:scale-105 transition-all shadow-2xs"
+                          />
+                          <div className="absolute -bottom-1 -right-1 bg-neutral-900 text-white rounded-full p-0.5 text-[8px] leading-none flex items-center justify-center">
+                            <Icon icon="lucide:camera" className="w-2.5 h-2.5" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </td>
 
                   <td

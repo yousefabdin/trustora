@@ -29,12 +29,16 @@ export default function ListingLedger({
       description: listing.firstDescription,
       price: listing.itemPrice,
       category: listing.category,
-      images: listing.images,
+      images:
+        listing.images && listing.images.length > 0
+          ? listing.images
+          : listing.img
+            ? [listing.img]
+            : [],
       status: listing.status || "active",
     });
     setIsEditOpen(true);
   };
-
   if (isLoading) {
     return (
       <div className="py-12 text-center text-content-secondary">
@@ -53,7 +57,7 @@ export default function ListingLedger({
 
   const start = (currentPage - 1) * limit;
   const paginatedItems = items.slice(start, start + limit);
-
+  console.log("Listing item", items);
   return (
     <div className="flex flex-col gap-[12px]">
       {paginatedItems.map((item) => {
@@ -63,7 +67,7 @@ export default function ListingLedger({
             id={formatOrderNumber(item.id)}
             title={item.itemName}
             image={item.img}
-            price={item.itemPrice as any}
+            price={item.itemPrice}
             views={12}
             status={item.status || "active"}
             onEdit={() => onEdit(item)}

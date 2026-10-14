@@ -30,7 +30,7 @@ export const router = createBrowserRouter([
         ],
       },
       {
-        element: <RoleRoute allowedRoles={["user", "admin", "seller"]} />,
+        element: <RoleRoute allowedRoles={["user", "seller"]} />,
         children: [
           {
             path: "/myorders",
@@ -56,19 +56,17 @@ export const router = createBrowserRouter([
             path: "/checkout/success/:orderId",
             element: <PaymentSuccessPage />,
           },
-        ],
-      },
-    ],
-  },
-  {
-    element: <ProtectedRoute />,
-    children: [
-      {
-        element: <RoleRoute allowedRoles={["user", "admin", "seller"]} />,
-        children: [
+          {
+            path: "/browse",
+            element: <MarketBrowsePage />,
+          },
           {
             path: "/seller/dashboard",
             element: <MyListingPage />,
+          },
+          {
+            path: "/item/:id",
+            element: <ItemDetailsPage />,
           },
         ],
       },
@@ -97,10 +95,6 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    path: "/browse",
-    element: <MarketBrowsePage />,
-  },
-  {
     path: "/",
     element: <HomePage />,
   },
@@ -112,10 +106,7 @@ export const router = createBrowserRouter([
     path: "/signup",
     element: <SignUpPage />,
   },
-  {
-    path: "/item/:id",
-    element: <ItemDetailsPage />,
-  },
+
   {
     path: "*",
     element: <NotFoundPage />,

@@ -24,15 +24,19 @@ export default function ListingHeader({
     setModal(!modal);
   };
 
-  const activeCount = sellerItems.filter(
+  const visibleItems = sellerItems.filter(
+    (item) => (item.status || "").toLowerCase() !== "inactive",
+  );
+
+  const activeCount = visibleItems.filter(
     (item) => (item.status || "active").toLowerCase() === "active",
   ).length;
 
-  const soldCount = sellerItems.filter(
+  const soldCount = visibleItems.filter(
     (item) => (item.status || "").toLowerCase() === "sold",
   ).length;
 
-  const draftCount = sellerItems.filter(
+  const draftCount = visibleItems.filter(
     (item) => (item.status || "").toLowerCase() === "draft",
   ).length;
 
@@ -98,7 +102,7 @@ export default function ListingHeader({
                   onClick={() => onTabChange?.("all")}
                   className="font-jetbrains text-xs text-indigo-600 hover:underline cursor-pointer font-semibold ml-1"
                 >
-                  Show All ({sellerItems.length})
+                  Show All ({visibleItems.length})
                 </button>
               </>
             )}

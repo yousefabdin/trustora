@@ -12,12 +12,13 @@ import { shipOrder } from "@/services/orderService";
 import { useQueryClient } from "@tanstack/react-query";
 import { getApiErrorMessage } from "@/apis/axios";
 import { useAuth } from "@/context/AuthContext";
+import { uploadImage } from "@/services/cloudinaryService";
 
 interface OrderConfirmationCardProps {
   roles?: "seller" | "buyer" | "Admin";
   order?: any;
   orderId?: string;
-  handleOpenDisputed?: (reason: string, description: string, evidenceFiles?: string[]) => void | Promise<void>;
+  handleOpenDisputed?: (reason: string, description: string, evidenceFiles?: Array<{ name: string; url?: string } | string>) => void | Promise<void>;
   setMode?: (mode: string) => void;
   mode?: string;
   onConfirmReceipt?: () => void | Promise<void>;
@@ -45,7 +46,6 @@ export default function OrderConfirmationCard({
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  // Buyer dispute states
   const [option, setOption] = useState<string>("");
   const [description, setDescription] = useState("");
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
@@ -54,13 +54,11 @@ export default function OrderConfirmationCard({
   const [isSubmittingDispute, setIsSubmittingDispute] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Seller shipping states
   const [selectedCarrier, setSelectedCarrier] = useState<string>("FedEx");
   const [trackingNumber, setTrackingNumber] = useState<string>("");
   const [shippingNotes, setShippingNotes] = useState<string>("");
   const [isShipping, setIsShipping] = useState<boolean>(false);
 
-  // Strict role verification: A buyer can NEVER be treated as a seller
   const isBuyer = Boolean(
     order?.isBuyer ??
       order?.permissions?.isBuyer ??
@@ -80,7 +78,6 @@ export default function OrderConfirmationCard({
               user.email?.toLowerCase() === order.sellerEmail.toLowerCase()))))
   );
 
-  // Strict barrier: If the user is the buyer on this order, effectiveRole is ALWAYS "buyer"
   const effectiveRole: "seller" | "buyer" = isSeller && roles === "seller" ? "seller" : "buyer";
 
   const canDispute = Boolean(
@@ -154,6 +151,48 @@ export default function OrderConfirmationCard({
     setEvidenceFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const compressEvidenceImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const rawUrl = (e.target?.result as string) || "";
+        if (!file.type.startsWith("image/")) {
+          resolve(rawUrl);
+          return;
+        }
+        const img = new Image();
+        img.onload = () => {
+          const MAX_DIM = 1200;
+          let width = img.width;
+          let height = img.height;
+          if (width > MAX_DIM || height > MAX_DIM) {
+            if (width > height) {
+              height = Math.round((height * MAX_DIM) / width);
+              width = MAX_DIM;
+            } else {
+              width = Math.round((width * MAX_DIM) / height);
+              height = MAX_DIM;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL("image/jpeg", 0.85));
+          } else {
+            resolve(rawUrl);
+          }
+        };
+        img.onerror = () => resolve(rawUrl);
+        img.src = rawUrl;
+      };
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleDisputeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canDispute) {
@@ -180,8 +219,23 @@ export default function OrderConfirmationCard({
 
     setIsSubmittingDispute(true);
     try {
-      const fileNames = evidenceFiles.map((f) => f.name);
-      await handleOpenDisputed?.(option, description, fileNames);
+      const convertedFiles = await Promise.all(
+        evidenceFiles.map(async (file) => {
+          if (file.type.startsWith("image/")) {
+            try {
+              const res = await uploadImage(file);
+              if (res && res.secure_url) {
+                return { name: file.name, url: res.secure_url };
+              }
+            } catch (err) {
+              console.warn("Cloudinary upload failed, falling back to local compression", err);
+            }
+          }
+          const url = await compressEvidenceImage(file);
+          return { name: file.name, url };
+        }),
+      );
+      await handleOpenDisputed?.(option, description, convertedFiles);
     } finally {
       setIsSubmittingDispute(false);
     }
@@ -241,9 +295,6 @@ export default function OrderConfirmationCard({
   const buyerDisplayName = formatSeller(order?.buyerName || order?.buyer || "Buyer");
 
   const cardRole = {
-    // ----------------------------------------------------
-    // BUYER ROLE
-    // ----------------------------------------------------
     buyer: (
       <>
         {mode === "default" && (
@@ -714,12 +765,8 @@ export default function OrderConfirmationCard({
       </>
     ),
 
-    // ----------------------------------------------------
-    // SELLER ROLE — SELLER FULFILLMENT HUB
-    // ----------------------------------------------------
     seller: (
       <div className="flex flex-col md:w-[360px] lg:w-[500px] gap-4">
-        {/* 1. Escrow Assurance Header Banner */}
         <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-4 flex items-start gap-3 shadow-xs">
           <div className="w-9 h-9 rounded-lg bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-700 shrink-0">
             <Icon icon="lucide:shield-check" className="w-5 h-5" />
@@ -739,7 +786,6 @@ export default function OrderConfirmationCard({
           </div>
         </div>
 
-        {/* 2. Buyer Delivery Information Card */}
         <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-3 shadow-xs">
           <div className="flex items-center justify-between pb-2 border-b border-gray-100">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider font-jetbrains">
@@ -778,7 +824,6 @@ export default function OrderConfirmationCard({
           </div>
         </div>
 
-        {/* 3. Action State: Awaiting Shipment */}
         {canShip && !isShipped && !isDelivered && !isCompleted && !isDisputed && (
           <div className="bg-white border border-indigo-200 rounded-xl p-5 shadow-xs flex flex-col gap-4">
             <div className="flex items-start justify-between">
@@ -836,7 +881,6 @@ export default function OrderConfirmationCard({
           </div>
         )}
 
-        {/* 4. Action State: Shipped / In Transit */}
         {isShipped && !isDelivered && !isCompleted && !isDisputed && (
           <div className="bg-indigo-50/70 border border-indigo-200 rounded-xl p-5 shadow-xs flex flex-col gap-3">
             <div className="flex items-center gap-2.5">
@@ -866,7 +910,6 @@ export default function OrderConfirmationCard({
           </div>
         )}
 
-        {/* 5. Action State: Completed / Funds Released */}
         {isCompleted && (
           <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-5 shadow-xs flex flex-col gap-3">
             <div className="flex items-center gap-2.5">
@@ -900,7 +943,6 @@ export default function OrderConfirmationCard({
           </div>
         )}
 
-        {/* 6. Action State: Disputed */}
         {isDisputed && (
           <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-5 shadow-xs flex flex-col gap-3">
             <div className="flex items-center gap-2.5">

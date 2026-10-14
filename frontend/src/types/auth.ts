@@ -6,11 +6,22 @@ export interface User {
   email: string;
   role: UserRole;
   roles: string[];
+  avatarUrl?: string;
+  phone?: string;
+  address?: string;
+  bio?: string;
+  memberSince?: string;
 }
 export interface BackendUserResponse {
   id: string;
   email: string;
   roles: string[];
+  name?: string;
+  avatarUrl?: string;
+  phone?: string;
+  address?: string;
+  bio?: string;
+  memberSince?: string;
 }
 export interface MockUser extends User {
   password: string;

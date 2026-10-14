@@ -12,7 +12,7 @@ export interface OpenDisputePayload {
   orderId: string;
   reason: string;
   description: string;
-  evidenceFiles?: string[];
+  evidenceFiles?: Array<{ name: string; url?: string } | string>;
 }
 
 export const getDisputeQueue = async (): Promise<Order[]> => {

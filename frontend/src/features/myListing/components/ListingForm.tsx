@@ -14,6 +14,7 @@ import {
 } from "@/services/ListingService";
 import { getApiErrorMessage } from "@/apis/axios";
 import { showToast } from "@/components/molecules/toast/Toast";
+import { uploadImage } from "@/services/cloudinaryService";
 
 const categories = [
   { code: "cameras", name: "Cameras & Photography" },
@@ -75,6 +76,10 @@ export default function ListingForm({
     null,
     null,
   ]);
+  const [existingImages, setExistingImages] = useState<string[]>(() => {
+    const list = selectedListing?.images || [];
+    return [list[0] || "", list[1] || "", list[2] || "", list[3] || ""];
+  });
   const [category, setCategory] = useState(
     selectedListing?.category?.toLowerCase() === "cameras"
       ? "cameras"
@@ -90,8 +95,14 @@ export default function ListingForm({
   const initialStatus =
     (selectedListing?.status?.toLowerCase() as "active" | "draft" | "sold") ||
     "active";
-  const [listingStatus, setListingStatus] = useState<"active" | "draft" | "sold">(
-    initialStatus === "sold" ? "sold" : initialStatus === "draft" ? "draft" : "active",
+  const [listingStatus, setListingStatus] = useState<
+    "active" | "draft" | "sold"
+  >(
+    initialStatus === "sold"
+      ? "sold"
+      : initialStatus === "draft"
+        ? "draft"
+        : "active",
   );
 
   const handleClear = () => {
@@ -101,6 +112,7 @@ export default function ListingForm({
     setCategory("");
     setCondition("");
     setImages([null, null, null, null]);
+    setExistingImages(["", "", "", ""]);
   };
 
   const handleDelete = async () => {
@@ -140,6 +152,30 @@ export default function ListingForm({
 
     try {
       setIsSubmitting(true);
+      const uploadedNewImages = await Promise.all(
+        images.map(async (img) => {
+          if (img instanceof File) {
+            const result = await uploadImage(img);
+            return result.secure_url;
+          }
+
+          return null;
+        }),
+      );
+
+      const finalImages: string[] = [];
+
+      for (let i = 0; i < 4; i++) {
+        if (uploadedNewImages[i]) {
+          finalImages.push(uploadedNewImages[i] as string);
+        } else if (existingImages[i]) {
+          finalImages.push(existingImages[i]);
+        }
+      }
+
+      const primaryImageUrl = finalImages[0] || undefined;
+      const imagesPayload = finalImages.length > 0 ? finalImages : undefined;
+
       if (isEdit && selectedListing?.id) {
         await updateListing(selectedListing.id, {
           title,
@@ -147,6 +183,8 @@ export default function ListingForm({
           category: category || "electronics",
           priceCents,
           status: finalStatus,
+          imageUrl: primaryImageUrl,
+          images: imagesPayload,
         });
         showToast({
           variant: "success",
@@ -154,8 +192,8 @@ export default function ListingForm({
             finalStatus === "draft"
               ? "Listing saved as Draft (hidden from marketplace)!"
               : finalStatus === "sold"
-              ? "Listing marked as Sold!"
-              : "Listing updated and active on marketplace!",
+                ? "Listing marked as Sold!"
+                : "Listing updated and active on marketplace!",
         });
       } else {
         await createListing({
@@ -164,6 +202,8 @@ export default function ListingForm({
           category: category || "electronics",
           priceCents,
           status: finalStatus === "draft" ? "draft" : "active",
+          imageUrl: primaryImageUrl,
+          images: imagesPayload,
         });
         showToast({
           variant: "success",
@@ -304,7 +344,6 @@ export default function ListingForm({
             </div>
           </div>
 
-          {/* Status selector in edit mode */}
           {isEdit && (
             <div className="flex flex-col gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
               <label className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
@@ -356,20 +395,26 @@ export default function ListingForm({
                 <FileUploader
                   key={index}
                   value={image}
-                  initialPreview={selectedListing?.images?.[index] ?? null}
+                  initialPreview={existingImages[index] || null}
                   onChange={(file) => {
                     setImages((prev) => {
                       const updated = [...prev];
                       updated[index] = file;
                       return updated;
                     });
+                    if (!file) {
+                      setExistingImages((prev) => {
+                        const updated = [...prev];
+                        updated[index] = "";
+                        return updated;
+                      });
+                    }
                   }}
                 />
               ))}
             </div>
           </div>
 
-          {/* Desktop buttons */}
           <div className="hidden md:flex justify-between mt-4">
             <Button
               variant="secondary"
@@ -403,7 +448,9 @@ export default function ListingForm({
                     onClick={() => handleSave("draft")}
                   ></Button>
                   <Button
-                    children={isSubmitting ? "Publishing..." : "Publish Listing"}
+                    children={
+                      isSubmitting ? "Publishing..." : "Publish Listing"
+                    }
                     variant="primary"
                     type="button"
                     disabled={isSubmitting}
@@ -414,7 +461,6 @@ export default function ListingForm({
             </div>
           </div>
 
-          {/* Mobile action buttons */}
           <div className="flex md:hidden flex-col gap-3 w-full mt-4">
             {isEdit ? (
               <>

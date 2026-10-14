@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import api from "@/apis/axios"; // <--- ADD THIS LINE
+import api from "@/apis/axios";
 export interface GetItemsParams {
   currentPage: number;
   limit: number;
@@ -16,6 +16,8 @@ export interface BackendListing {
   status: string;
   createdAt: string;
   updatedAt: string;
+  imageUrl?: string | null;
+  images?: string[];
 }
 export interface PaginatedItems {
   data: MarketplaceListing[];
@@ -28,8 +30,6 @@ export interface PaginatedItems {
 
 export interface MarketplaceListing {
   id: string;
-  sellerId?: string;
-  sellerEmail?: string;
   itemName: string;
   itemPrice: number;
   sellerName: string;
@@ -41,7 +41,7 @@ export interface MarketplaceListing {
   images: string[];
   firstDescription: string;
   secondDescription: string;
-  status?: "active" | "sold" | "draft" | "inactive";
+  status: string;
 }
 const CATEGORY_IMAGES: Record<string, string[]> = {
   apparel: [
@@ -63,31 +63,19 @@ const CATEGORY_IMAGES: Record<string, string[]> = {
 const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80";
 
-export const formatSellerHandle = (rawName?: string): string => {
-  if (!rawName) return "seller";
-  let handle = rawName.split("@")[0];
-  // Strip trailing timestamps / generated test IDs like "-1790951187875-17"
-  if (handle.includes("-")) {
-    const parts = handle.split("-");
-    if (parts.length > 1 && /^\d+/.test(parts[1])) {
-      handle = parts[0];
-    }
-  }
-  if (handle.length > 14) {
-    handle = `${handle.slice(0, 11)}...`;
-  }
-  return handle;
-};
-
 export const adaptListing = (item: BackendListing): MarketplaceListing => {
-  const catKey = item.category?.toLowerCase() || "electronics";
-  const imagePool = CATEGORY_IMAGES[catKey] || [DEFAULT_IMAGE];
-  const primaryImg = imagePool[0] || DEFAULT_IMAGE;
-  const sellerHandle = formatSellerHandle(item.sellerName);
+  const imagePool =
+    item.images && item.images.length > 0
+      ? item.images.filter(Boolean)
+      : item.imageUrl
+        ? [item.imageUrl]
+        : [];
+  const primaryImg = item.imageUrl || imagePool[0] || DEFAULT_IMAGE;
+  const sellerHandle = item.sellerName
+    ? item.sellerName.split("@")[0]
+    : "seller";
   return {
     id: item.id,
-    sellerId: item.sellerId,
-    sellerEmail: item.sellerName,
     itemName: item.title,
     itemPrice: item.priceCents / 100,
     sellerName: sellerHandle,
@@ -95,34 +83,19 @@ export const adaptListing = (item: BackendListing): MarketplaceListing => {
     condition: "Like New",
     rating: 4.9,
     category: item.category,
+    status: item.status || "active",
     img: primaryImg,
-    images: imagePool,
+    images: imagePool.length > 0 ? imagePool : [primaryImg],
     firstDescription: item.description,
     secondDescription: `Verified listing under Escrow protocol. Listed on ${new Date(item.createdAt).toLocaleDateString()}.`,
-    status: (item.status?.toLowerCase() as any) || "active",
   };
 };
-export interface MarketplaceQueryParams {
+
+export const getMarketplaceListings = async (params?: {
   search?: string;
   category?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  sortBy?: string;
-}
-
-export const getMarketplaceListings = async (
-  params?: MarketplaceQueryParams,
-): Promise<MarketplaceListing[]> => {
-  const queryParams: Record<string, string | number> = {};
-  if (params?.search && params.search.trim()) queryParams.search = params.search.trim();
-  if (params?.category && params.category !== "all") queryParams.category = params.category;
-  if (params?.minPrice !== undefined) queryParams.minPrice = params.minPrice;
-  if (params?.maxPrice !== undefined) queryParams.maxPrice = params.maxPrice;
-  if (params?.sortBy) queryParams.sortBy = params.sortBy;
-
-  const response = await api.get<BackendListing[]>("/listings", {
-    params: queryParams,
-  });
+}): Promise<MarketplaceListing[]> => {
+  const response = await api.get<BackendListing[]>("/listings", { params });
   return response.data.map(adaptListing);
 };
 
@@ -133,10 +106,16 @@ export const getListingById = async (
   return adaptListing(response.data);
 };
 
-export const useMarketplaceListings = (params?: MarketplaceQueryParams) => {
+export const useMarketplaceListings = (params?: {
+  search?: string;
+  category?: string;
+}) => {
   return useQuery({
     queryKey: ["listings", params],
     queryFn: () => getMarketplaceListings(params),
+    refetchInterval: 200000,
+    refetchOnWindowFocus: true,
+    staleTime: 10000,
   });
 };
 

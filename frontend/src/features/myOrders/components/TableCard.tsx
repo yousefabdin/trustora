@@ -27,7 +27,6 @@ export default function OrdersTable({
   const [debouncedSearch, setDebouncedSearch] = useState(search);
   const navigate = useNavigate();
   const limit = 6;
-
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
@@ -50,13 +49,18 @@ export default function OrdersTable({
   const orders = paginatedData?.data || [];
   const total = paginatedData?.total || 0;
   const totalPages = paginatedData?.totalPages || 1;
-
   if (isLoading) {
-    return <div className="py-12 text-center text-content-secondary">Loading orders...</div>;
+    return (
+      <div className="py-12 text-center text-content-secondary">
+        Loading orders...
+      </div>
+    );
   }
 
   if (!orders.length) {
-    const isFiltered = Boolean(debouncedSearch.trim() || (activeFilter && activeFilter !== "All"));
+    const isFiltered = Boolean(
+      debouncedSearch.trim() || (activeFilter && activeFilter !== "All"),
+    );
     return (
       <div className="py-6 w-full max-w-[1184px] mx-auto">
         <EmptyState

@@ -3,11 +3,12 @@ import { Link, useLocation } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import clsx from "clsx";
 import NotificationDropdown from "@/components/organisms/NavigationsBar/NotificationDropdown";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AdminNavbar() {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-
   useEffect(() => {
     setIsOpen(false);
   }, [location.pathname]);
@@ -115,12 +116,12 @@ export default function AdminNavbar() {
             <Link to="/profile">
               <div className="flex items-center gap-2.5">
                 <img
-                  src="/assets/images/img.png"
-                  alt="ops_lead"
+                  src={user?.avatarUrl || "/assets/images/img.png"}
+                  alt={user?.name || "Profile"}
                   className="w-7 h-7 rounded-full object-cover border border-outline-subtle"
                 />
                 <span className="text-content-primary font-medium text-[14px] whitespace-nowrap">
-                  ops_lead
+                  {user?.name || "Admin"}
                 </span>
               </div>
             </Link>
@@ -176,14 +177,14 @@ export default function AdminNavbar() {
                   <div className="flex items-center gap-3">
                     <Link to="/profile" title="View Profile">
                       <img
-                        src="/assets/images/img.png"
-                        alt="ops_lead"
+                        src={user?.avatarUrl || "/assets/images/img.png"}
+                        alt={user?.name || "Profile"}
                         className="w-10 h-10 rounded-full border border-outline-strong object-cover"
                       />
                     </Link>
                     <div className="flex flex-col">
                       <span className="text-[14px] font-semibold text-content-primary">
-                        ops_lead
+                        {user?.name || "Admin"}
                       </span>
                       <span className="text-[11px] text-content-tertiary font-medium">
                         Admin Console

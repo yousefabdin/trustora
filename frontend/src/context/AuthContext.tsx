@@ -4,7 +4,6 @@ import {
   useContext,
   createContext,
   type ReactNode,
-  Children,
 } from "react";
 import { showToast } from "@/components/molecules/toast/Toast";
 
@@ -15,7 +14,7 @@ export interface RegisterCredentials {
   email: string;
   password: string;
 }
-import type { LoginCredentials, LoginResponse, User } from "@/types/auth";
+import type { LoginCredentials, User } from "@/types/auth";
 import * as authService from "@/services/authService";
 
 interface AuthContextType {
@@ -25,6 +24,8 @@ interface AuthContextType {
   register: (credentials: RegisterCredentials) => Promise<User>;
   login: (credentials: LoginCredentials) => Promise<User>;
   logout: () => Promise<void>;
+  updateProfile: (updates: Partial<User>) => Promise<User>;
+  updateAvatar: (avatarUrl: string) => Promise<User>;
 }
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -34,7 +35,7 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const restoreSession = async (isMounted) => {
+  const restoreSession = async (isMounted: boolean) => {
     try {
       const currentUser = await authService.getCurrentUser();
       if (isMounted) {
@@ -107,6 +108,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  const updateProfile = async (updates: Partial<User>): Promise<User> => {
+    if (!user) {
+      throw new Error("No authenticated user to update");
+    }
+    const updatedUser: User = {
+      ...user,
+      ...updates,
+    };
+    authService.saveStoredUserProfile(user.id, updates);
+    setUser(updatedUser);
+    return updatedUser;
+  };
+
+  const updateAvatar = async (avatarUrl: string): Promise<User> => {
+    return updateProfile({ avatarUrl });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -116,6 +134,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         login,
         logout,
         register,
+        updateProfile,
+        updateAvatar,
       }}
     >
       {children}

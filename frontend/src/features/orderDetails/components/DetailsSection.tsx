@@ -109,7 +109,7 @@ export default function DetailsSection() {
   const handleOpenDisputed = async (
     reason: string,
     description: string,
-    evidenceFiles?: string[]
+    evidenceFiles?: Array<{ name: string; url?: string } | string>
   ) => {
     try {
       await openDispute({ orderId: orderId!, reason, description, evidenceFiles });
